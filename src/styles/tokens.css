@@ -1,0 +1,142 @@
+/* ============================================================
+   Ready Library — design tokens
+   Ready Poster Printer's system (light default, [data-theme="dark"] overrides),
+   plus what a library needs: cloth, paper and glass shelves.
+   ============================================================ */
+@font-face { font-family: 'RL Sans'; src: url(/ui-fonts/Inter.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'RL Display'; src: url(/ui-fonts/InterTight.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'RL Mono'; src: url(/ui-fonts/GeistMono.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'RL Serif'; src: url(/ui-fonts/InstrumentSerif.woff2) format('woff2'); font-style: normal; font-display: swap; }
+@font-face { font-family: 'RL Serif'; src: url(/ui-fonts/InstrumentSerifItalic.woff2) format('woff2'); font-style: italic; font-display: swap; }
+@font-face { font-family: 'RL CJK'; src: url(/fonts/noto-sans-sc-0.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'RL Serif SC'; src: url(/fonts/noto-serif-sc-0.woff2) format('woff2'); font-weight: 200 900; font-display: swap; }
+
+:root {
+  /* ---- type ---- */
+  --font-ui: 'RL Sans', 'PingFang SC', 'RL CJK', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-display: 'RL Display', 'PingFang SC', 'RL CJK', system-ui, sans-serif;
+  --font-mono: 'RL Mono', ui-monospace, 'PingFang SC', 'RL CJK', monospace;
+  --font-serif: 'RL Serif', 'RL Serif SC', 'Songti SC', Georgia, serif;
+  /* titles on cloth: a book face for CJK, Instrument Serif for Latin */
+  --font-cloth: 'RL Serif', 'RL Serif SC', 'Songti SC', 'STSong', serif;
+  --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-lg: 15px; --fs-xl: 17px; --fs-2xl: 22px; --fs-3xl: 28px; --fs-4xl: 40px;
+  --lh-tight: 1.15; --lh: 1.45;
+
+  /* ---- space (4pt) ---- */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px; --s14: 56px;
+
+  /* ---- radii ---- */
+  --r-xs: 6px; --r-sm: 9px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px; --r-2xl: 28px; --r-pill: 999px;
+
+  /* ---- motion ---- */
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --ease-liquid: cubic-bezier(.3, .7, .2, 1);
+  --ease-shelf: cubic-bezier(.77, 0, .175, 1);
+  --d-1: 120ms; --d-2: 200ms; --d-3: 320ms; --d-4: 480ms; --d-5: 640ms;
+
+  /* ---- palette: light ---- */
+  --stage: #ebebee;
+  --stage-2: #e3e3e8;
+  --ink: #0b0b0e;
+  --ink-2: rgba(11, 11, 14, .64);
+  --ink-3: rgba(11, 11, 14, .42);
+  --ink-4: rgba(11, 11, 14, .22);
+  --hair: rgba(11, 11, 14, .08);
+  --hair-2: rgba(11, 11, 14, .14);
+  --fill: rgba(11, 11, 14, .045);
+  --fill-2: rgba(11, 11, 14, .08);
+  --fill-3: rgba(11, 11, 14, .13);
+  --accent: #ff5a1f;           /* "Print signal" — the one accent */
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(255, 90, 31, .14);
+  --ok: #1fae6b; --warn: #e2a400; --bad: #e5484d;
+  --inverse: #0b0b0e; --on-inverse: #fafafa;
+  --logo-ink: #ebebee;
+
+  /* ---- paper: the page, a bookplate, a ribbon ---- */
+  --paper: #f7f4ee;
+  --paper-2: #efeae0;
+  --paper-ink: #1d1b18;
+  --paper-ink-2: #5a544a;
+  --paper-ink-3: #8f877a;
+  --ribbon: #ff5a1f;
+  --hl: rgb(255 206 64 / .5);
+
+  /* ---- glass material ---- */
+  --glass-tint: 252 252 253;
+  --glass-alpha: .52;
+  --glass-alpha-strong: .62;
+  --glass-alpha-clear: .3;
+  --glass-blur: 22px;
+  --glass-sat: 185%;
+  --glass-rim-hi: rgba(255, 255, 255, .95);
+  --glass-rim-lo: rgba(255, 255, 255, .18);
+  --glass-edge: rgba(11, 11, 14, .07);
+  --glass-inner-hi: rgba(255, 255, 255, .75);
+  --glass-inner-lo: rgba(11, 11, 14, .04);
+  --glass-caustic: rgba(255, 255, 255, .55);
+  --shadow-1: 0 1px 2px rgba(10, 10, 20, .06), 0 2px 8px -2px rgba(10, 10, 20, .06);
+  --shadow-2: 0 2px 6px rgba(10, 10, 20, .05), 0 12px 32px -12px rgba(10, 10, 30, .18);
+  --shadow-3: 0 4px 12px rgba(10, 10, 20, .06), 0 24px 64px -20px rgba(10, 10, 30, .28);
+  --shadow-4: 0 8px 24px rgba(10, 10, 20, .08), 0 48px 120px -32px rgba(10, 10, 30, .38);
+  --book-shadow: 0 1px 1px rgba(0,0,0,.08), 0 20px 32px -18px rgba(20,20,40,.5), 0 4px 10px -4px rgba(20,20,40,.18);
+
+  /* ---- the shelf: a pane of glass on brackets ---- */
+  --shelf-top: rgb(255 255 255 / .78);
+  --shelf-face: rgb(255 255 255 / .42);
+  --shelf-edge: rgb(11 11 14 / .10);
+  --shelf-cast: rgb(20 20 40 / .16);
+  --bracket: #c9c9cf;
+
+  /* adaptive: written by JS from the cover in view */
+  --amb: 200 190 180;
+  --amb-alpha: .10;
+  --la: 135deg;
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --stage: #0b0b0d;
+  --stage-2: #111114;
+  --ink: #f4f4f6;
+  --ink-2: rgba(244, 244, 246, .66);
+  --ink-3: rgba(244, 244, 246, .42);
+  --ink-4: rgba(244, 244, 246, .2);
+  --hair: rgba(255, 255, 255, .08);
+  --hair-2: rgba(255, 255, 255, .14);
+  --fill: rgba(255, 255, 255, .05);
+  --fill-2: rgba(255, 255, 255, .085);
+  --fill-3: rgba(255, 255, 255, .13);
+  --accent: #ff6a2c;
+  --accent-soft: rgba(255, 106, 44, .18);
+  --inverse: #f4f4f6; --on-inverse: #0b0b0e;
+  --logo-ink: #0b0b0e;
+  --paper: #e9e4da;
+  --paper-2: #ddd6c9;
+  --hl: rgb(255 200 60 / .42);
+  --glass-tint: 28 28 32;
+  --glass-alpha: .5;
+  --glass-alpha-strong: .64;
+  --glass-alpha-clear: .3;
+  --glass-sat: 170%;
+  --glass-rim-hi: rgba(255, 255, 255, .42);
+  --glass-rim-lo: rgba(255, 255, 255, .04);
+  --glass-edge: rgba(0, 0, 0, .5);
+  --glass-inner-hi: rgba(255, 255, 255, .14);
+  --glass-inner-lo: rgba(0, 0, 0, .25);
+  --glass-caustic: rgba(255, 255, 255, .12);
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4), 0 2px 8px -2px rgba(0,0,0,.4);
+  --shadow-2: 0 2px 6px rgba(0,0,0,.35), 0 12px 32px -12px rgba(0,0,0,.6);
+  --shadow-3: 0 4px 12px rgba(0,0,0,.4), 0 24px 64px -20px rgba(0,0,0,.7);
+  --shadow-4: 0 8px 24px rgba(0,0,0,.45), 0 48px 120px -32px rgba(0,0,0,.8);
+  --book-shadow: 0 0 0 1px rgba(255,255,255,.03), 0 20px 34px -16px rgba(0,0,0,.8), 0 4px 10px -4px rgba(0,0,0,.5);
+  --shelf-top: rgb(255 255 255 / .16);
+  --shelf-face: rgb(255 255 255 / .07);
+  --shelf-edge: rgb(255 255 255 / .1);
+  --shelf-cast: rgb(0 0 0 / .5);
+  --bracket: #3a3a40;
+  --amb-alpha: .14;
+  color-scheme: dark;
+}

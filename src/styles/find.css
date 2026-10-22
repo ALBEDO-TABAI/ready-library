@@ -1,0 +1,99 @@
+/* ============================================================
+   Finding books: one glass sheet, two lanes.
+   ============================================================ */
+.find { position: fixed; z-index: 41; left: 50%; top: 5vh; width: min(1120px, calc(100vw - 32px)); height: 90vh; transform: translateX(-50%);
+  border-radius: 30px; display: flex; flex-direction: column; overflow: hidden; animation: sheetIn .5s var(--ease-spring) both; }
+@keyframes sheetIn { from { opacity: 0; transform: translate(-50%, 18px) scale(.97); } }
+.find-q { display: flex; align-items: center; gap: 12px; padding: 0 14px 0 24px; height: 74px; flex: none; border-bottom: .5px solid var(--hair); color: var(--ink-3); }
+.find-q input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font-size: 24px; letter-spacing: -.01em; color: var(--ink); font-family: var(--font-display); font-weight: 500; }
+.find-q input::placeholder { color: var(--ink-4); font-family: var(--font-serif); font-style: italic; font-weight: 400; }
+.find-go { border-radius: 14px; height: 40px; padding: 0 12px 0 16px; }
+.find-go kbd { background: rgb(255 255 255 / .14); color: rgb(255 255 255 / .7); box-shadow: none; }
+[data-theme='dark'] .find-go kbd { background: rgb(0 0 0 / .08); color: rgb(0 0 0 / .5); }
+.find-bar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; flex: none; flex-wrap: wrap; }
+.src-led { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-4); flex: none; }
+.src-led.on { background: var(--ok); box-shadow: 0 0 0 3px rgb(31 174 107 / .16); }
+.src-led.warn { background: var(--warn); box-shadow: 0 0 0 3px rgb(226 164 0 / .16); }
+.src-led.bad { background: var(--bad); box-shadow: 0 0 0 3px rgb(229 72 77 / .14); }
+.find-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; }
+.find-body.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); }
+.lane { min-height: 0; overflow-y: auto; padding: 4px 20px 24px; -webkit-mask: linear-gradient(transparent, #000 14px, #000 calc(100% - 18px), transparent); mask: linear-gradient(transparent, #000 14px, #000 calc(100% - 18px), transparent); scrollbar-width: thin; scrollbar-color: var(--fill-3) transparent; }
+.find-body.two .lane + .lane { border-left: .5px solid var(--hair); }
+.lane-h { display: flex; align-items: baseline; gap: 10px; padding: 12px 0 10px; margin-bottom: 4px; flex-wrap: wrap; }
+.lane-h h3 { font-family: var(--font-serif); font-weight: 400; font-size: 28px; letter-spacing: -.01em; line-height: 1; }
+.lane-h .btn { margin-left: auto; }
+.lane-sub { margin: 6px 0 10px; }
+.lane-note { color: var(--ink-3); font-size: 13px; line-height: 1.6; padding: 14px 2px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lane-note.bad { color: var(--bad); }
+.lane-loading { display: flex; align-items: center; gap: 10px; color: var(--ink-3); padding: 14px 2px; font-size: 13px; }
+.wide-more { width: 100%; margin-top: 8px; }
+.cats { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 10px; }
+
+/* treasure rows: a sliver of cloth, the title, the way to it */
+.t-list { display: flex; flex-direction: column; }
+.t-row { display: flex; align-items: center; gap: 12px; padding: 9px 6px 9px 4px; border-radius: 14px; animation: rise .4s var(--ease-out) both; animation-delay: calc(var(--i) * 18ms); }
+.t-row:hover { background: var(--fill); }
+.t-spine { width: 9px; height: 40px; border-radius: 2px; flex: none; background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .12); background-image: linear-gradient(90deg, rgb(0 0 0 / .2), rgb(255 255 255 / .16) 40%, rgb(0 0 0 / .18)); }
+.t-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.t-title { font-family: var(--font-cloth); font-weight: 600; font-size: 15.5px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-meta { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-3); overflow: hidden; white-space: nowrap; }
+.t-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-4); flex: none; }
+.t-meta .mono { font-size: 10.5px; }
+.t-act { display: flex; align-items: center; gap: 2px; flex: none; }
+.t-act .btn { margin-right: 4px; }
+
+/* zlib cards: real covers */
+.z-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.z-card { display: flex; gap: 12px; padding: 10px; border-radius: 16px; background: var(--fill); box-shadow: inset 0 0 0 .5px var(--hair); animation: rise .45s var(--ease-out) both; animation-delay: calc(var(--i) * 25ms); min-width: 0; }
+.z-cover { position: relative; width: 66px; height: 94px; flex: none; border-radius: 3px 5px 5px 3px; overflow: hidden; background: linear-gradient(135deg, var(--fill-3), var(--fill)); box-shadow: var(--book-shadow); }
+.z-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.z-ext { position: absolute; left: 4px; bottom: 4px; font-size: 8.5px; padding: 1px 4px; border-radius: 4px; background: rgb(0 0 0 / .62); color: #fff; }
+.z-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.z-title { font-family: var(--font-cloth); font-weight: 600; font-size: 14.5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.z-meta { font-size: 12px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.z-act { margin-top: auto; display: flex; align-items: center; }
+.z-prog { display: flex; align-items: center; gap: 8px; width: 100%; font-size: 10.5px; color: var(--ink-3); }
+.z-prog .job-bar { flex: 1; height: 3px; border-radius: 3px; background: var(--fill-3); overflow: hidden; }
+.z-prog .job-bar i { display: block; height: 100%; background: var(--accent); }
+
+/* zlib not ready: the three steps */
+.setup { margin-top: 8px; padding: 18px; border-radius: 20px; background: var(--fill); box-shadow: inset 0 0 0 .5px var(--hair); }
+.setup-why { display: flex; align-items: center; gap: 9px; font-weight: 500; }
+.setup ol { margin: 16px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.setup li { display: flex; gap: 12px; }
+.setup-n { font-size: 11px; color: var(--accent); padding-top: 2px; }
+.setup li p { font-size: 13px; color: var(--ink-2); }
+.setup code { display: inline-block; margin-top: 6px; font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; border-radius: 9px; background: var(--inverse); color: var(--on-inverse); cursor: copy; user-select: all; }
+.setup-row { display: flex; gap: 8px; margin-top: 18px; }
+.setup-note { margin-top: 12px; font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+.find-foot { flex: none; padding: 10px 20px 12px; border-top: .5px solid var(--hair); white-space: normal; }
+
+@media (max-width: 860px) {
+  .find { top: 10px; height: calc(100dvh - 20px); border-radius: 24px; }
+  .find-body.two { grid-template-columns: 1fr; overflow-y: auto; }
+  .find-body.two .lane { overflow: visible; }
+  .find-body.two .lane + .lane { border-left: 0; border-top: .5px solid var(--hair); }
+  .find-q input { font-size: 19px; }
+  .find-foot span:last-child { display: none; }
+}
+
+/* a running download: bar, what it is doing, a way to stop it (find rows, the open book, the jobs pill) */
+.jl { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.jl-row { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.jl-t { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40%; flex: none; }
+.jl-bar { position: relative; flex: 1; min-width: 40px; height: 3px; border-radius: 3px; background: color-mix(in srgb, currentColor 14%, transparent); overflow: hidden; }
+.jl-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .5s var(--ease-out); }
+.jl-bar[data-busy] i { animation: jlBusy 1.3s var(--ease-in-out) infinite; }
+@keyframes jlBusy { from { transform: translateX(-110%); } to { transform: translateX(340%); } }
+.jl-s { flex: none; font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
+.jl[data-stage='captcha'] .jl-s { color: var(--accent); }
+.jl-x { width: 24px; height: 24px; flex: none; margin: -4px -4px -4px 0; }
+.jl.compact .jl-s { max-width: 58%; overflow: hidden; text-overflow: ellipsis; }
+.t-row.has-job { background: var(--fill); }
+.t-row .jl { margin-top: 4px; }
+
+.cap-box { display: flex; align-items: center; gap: 8px; }
+.cap-img { flex: none; height: 34px; min-width: 92px; padding: 0; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 .5px var(--hair); display: grid; place-items: center; cursor: pointer; }
+.cap-img img { height: 34px; width: auto; display: block; }
+.cap-box input { flex: 1; min-width: 0; height: 34px; padding: 0 10px; border-radius: 9px; border: 0; outline: 0; background: var(--fill-2); color: var(--ink); font: 500 15px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; box-shadow: inset 0 0 0 .5px var(--hair); }
+.cap-box input:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
