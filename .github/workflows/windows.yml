@@ -15,3 +15,16 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - run: npm ci
+        working-directory: desktop
+      - run: npm run win
+        working-directory: desktop
+      - run: npm test
+        working-directory: desktop
+      - run: npm test -- --packaged
+        working-directory: desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ready-Library-Windows-x64
+          path: desktop/dist/*-win-x64.exe
+          if-no-files-found: error

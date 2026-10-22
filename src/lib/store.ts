@@ -25,9 +25,11 @@ type State = {
   toasts: Toast[];
   /** "Start reading" from an open book: it stays on screen, grown to where the reader's pages will be, until they are ready. */
   handoff: { id: string; ready: boolean; placed: boolean } | null;
+  /** how the reader was entered when it was by ↑ ↓ from another book's cover: open at the cover, coming from that side */
+  browse: { id: string; dir: 1 | -1 } | null;
 
   hydrate: () => Promise<void>;
-  go: (r: Route, opts?: { handoff?: boolean }) => void;
+  go: (r: Route, opts?: { handoff?: boolean; browse?: 1 | -1 }) => void;
   /** the reader's pages are drawn */
   handoffReady: () => void;
   /** the open book has grown into the reader's place */
@@ -74,6 +76,7 @@ export const useStore = create<State>((set, get) => ({
   jobErrors: {},
   toasts: [],
   handoff: null,
+  browse: null,
 
   hydrate: async () => {
     try {
@@ -88,8 +91,13 @@ export const useStore = create<State>((set, get) => ({
   },
   go: (r, opts) => {
     const hash = r.name === 'read' ? `#/read/${r.id}` : '#/';
-    if (location.hash !== hash) history.pushState(null, '', hash);
-    set({ route: r, handoff: r.name === 'read' && opts?.handoff ? { id: r.id, ready: false, placed: false } : null });
+    // browsing from book to book replaces the history entry: Back still goes to the shelf
+    if (location.hash !== hash) (opts?.browse ? history.replaceState : history.pushState).call(history, null, '', hash);
+    set({
+      route: r,
+      handoff: r.name === 'read' && opts?.handoff ? { id: r.id, ready: false, placed: false } : null,
+      browse: r.name === 'read' && opts?.browse ? { id: r.id, dir: opts.browse } : null,
+    });
   },
   handoffReady: () => { const h = get().handoff; if (h && !h.ready) set({ handoff: { ...h, ready: true } }); },
   handoffPlaced: () => { const h = get().handoff; if (h && !h.placed) set({ handoff: { ...h, placed: true } }); },
@@ -193,5 +201,5 @@ export const useStore = create<State>((set, get) => ({
   cancelJob: async (id) => { try { await api.cancelJob(id); } catch (e) { get().toast({ text: (e as Error).message, kind: 'bad' }); } },
 }));
 
-window.addEventListener('popstate', () => useStore.setState({ route: routeOf(location.hash), handoff: null }));
+window.addEventListener('popstate', () => useStore.setState({ route: routeOf(location.hash), handoff: null, browse: null }));
 document.documentElement.dataset.theme = useStore.getState().theme;

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- App icon: the library's mark (src/ui/Logo.tsx, three spines and the print-signal dot) on the same macOS tile as
+       Ready Poster Printer's, with the spines standing on a shelf and the third one leaning on its neighbour -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbfbfc"/>
+      <stop offset="1" stop-color="#e3e3e8"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3a3a41"/>
+      <stop offset=".45" stop-color="#1f1f24"/>
+      <stop offset="1" stop-color="#0b0b0e"/>
+    </linearGradient>
+    <linearGradient id="mid" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a3a3ab"/>
+      <stop offset=".5" stop-color="#8a8a93"/>
+      <stop offset="1" stop-color="#6f6f78"/>
+    </linearGradient>
+    <filter id="tileShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dy="12" result="b"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".28"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-30%" y="-10%" width="160%" height="125%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation=".45"/>
+      <feOffset dx=".2" dy=".4" result="b"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".24"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)" filter="url(#tileShadow)"/>
+  <rect x="100.5" y="100.5" width="823" height="823" rx="184.5" fill="none" stroke="#0b0b0e" stroke-opacity=".07"/>
+  <g transform="translate(138 134) scale(28)">
+    <!-- the tall one -->
+    <g filter="url(#soft)">
+      <rect x="4.2" y="4.3" width="5.1" height="16.7" rx="1" fill="url(#body)"/>
+      <rect x="4.2" y="6.7" width="5.1" height=".5" fill="#f2f2f4" opacity=".5"/>
+      <rect x="4.2" y="7.5" width="5.1" height=".24" fill="#f2f2f4" opacity=".35"/>
+      <rect x="4.2" y="18.2" width="5.1" height=".5" fill="#f2f2f4" opacity=".5"/>
+    </g>
+    <!-- the paper one: Poster Printer's sheet, stood up as a spine (the orange block, two lines of type) -->
+    <g filter="url(#soft)">
+      <rect x="10.35" y="7.1" width="4.7" height="13.5" rx=".8" fill="#f7f7f8" stroke="#0b0b0e" stroke-width=".85"/>
+      <rect x="11.55" y="9.1" width="2.3" height="2.8" fill="#ff5a1f"/>
+      <path d="M11.55 14.3h2.3M11.55 16.1h1.6" stroke="#0b0b0e" stroke-width=".75" stroke-linecap="round" opacity=".55"/>
+    </g>
+    <!-- the leaning one: resting on its foot, its shoulder against its neighbour -->
+    <g transform="rotate(-14 18.35 21)" filter="url(#soft)">
+      <rect x="18.35" y="9.2" width="5.1" height="11.8" rx="1" fill="url(#body)"/>
+      <rect x="18.35" y="11.5" width="5.1" height=".5" fill="#f2f2f4" opacity=".5"/>
+      <rect x="18.35" y="18.2" width="5.1" height=".5" fill="#f2f2f4" opacity=".5"/>
+    </g>
+    <!-- the shelf -->
+    <rect x="2.8" y="21" width="21.6" height="1.1" rx=".55" fill="#1b1b20"/>
+    <circle cx="22.6" cy="5.9" r="1.55" fill="#ff5a1f"/>
+  </g>
+</svg>

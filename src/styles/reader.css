@@ -180,3 +180,24 @@
 .nl-n { font-family: var(--font-note); font-size: 14px; line-height: 1.55; color: var(--ink-2); white-space: pre-wrap; }
 .rd-toc .nl-item .nl-p { position: absolute; right: 12px; top: 13px; font-size: 10.5px; color: var(--ink-3); }
 .rd-toc .nl-export { width: auto; justify-content: center; margin: 12px 8px 0; }
+
+/* ↑ ↓ from a cover to the neighbouring books: the reader's controls stay, only the book changes */
+.reader.is-browse > .top, .reader.is-browse > .rd-dock { animation: none; }
+.reader.is-browse .aura img { animation: fadeIn .9s var(--ease-out) both; }
+.rd-stage.from-down .rd-book { translate: 0 64px; }
+.rd-stage.from-up .rd-book { translate: 0 -64px; }
+.rd-stage.from-down.is-in .rd-book, .rd-stage.from-up.is-in .rd-book { translate: none;
+  transition: transform .7s cubic-bezier(.45, .05, .25, 1), opacity .45s var(--ease-out), translate .65s cubic-bezier(.2, .8, .2, 1), scale .65s var(--ease-out); }
+.rd-stage.move-down .rd-book, .rd-stage.move-up .rd-book { opacity: 0; transition: translate .26s cubic-bezier(.5, 0, .75, 0), opacity .24s ease-in; }
+.rd-stage.move-down .rd-book { translate: 0 -64px; }
+.rd-stage.move-up .rd-book { translate: 0 64px; }
+.rd-stage.move-nudge-down .rd-book { animation: nudgeDown .44s var(--ease-out); }
+.rd-stage.move-nudge-up .rd-book { animation: nudgeUp .44s var(--ease-out); }
+@keyframes nudgeDown { 35% { translate: 0 -12px; } }
+@keyframes nudgeUp { 35% { translate: 0 12px; } }
+.rd-cover-hint { position: fixed; z-index: 25; left: 50%; bottom: 86px; transform: translateX(-50%); margin: 0; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); animation: fadeIn .5s var(--ease-out) .35s both; }
+.rd-cover-hint .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-4); }
+.rd-cover-hint kbd { margin-right: 2px; }
+.rd-cover-hint button { font: inherit; color: var(--ink-2); padding: 0; }
+.rd-cover-hint button:hover { color: var(--ink); }

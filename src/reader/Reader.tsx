@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api, coverUrl, fileUrl, type BookRec, type Bookmark, type Highlight, type Marker } from '../lib/api';
-import { hash, lookOf, TOPIC } from '../lib/topics';
+import { hash, lookOf, sortBooks, TOPIC, type Sort } from '../lib/topics';
 import { shelfBook } from '../library/Library';
 import { Icon } from '../ui/Icon';
 import { LSeg } from '../ui/controls';
@@ -11,7 +11,7 @@ import { fontStack, PAPERS, paginate, type Layout, type Page, type Typo } from '
 import { createFlipbook } from './flipbook.js';
 import { anchorOf, chapterText, pagesOf, paintMarks, sliceNonWs } from './marks';
 import { Lens, MarginNotes, NotesList, type Box, type LensState, type MarginItem } from './Notes';
-import { PAGED, take } from './preload';
+import { PAGED, readAhead, take } from './preload';
 import pageCss from './page.css?raw';
 
 const PdfReader = lazy(() => import('./PdfReader'));
@@ -91,6 +91,11 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
   const hlRef = useRef<Highlight[]>(hls);
   hlRef.current = hls;
   const swallowAt = useRef(0), handed = useRef(false);
+  // came here by ↑ ↓ from another book's cover: open at this one's cover, rising in from that side, and count it as
+  // opened only once you turn past the cover (browsing covers doesn't touch "continue reading")
+  const entry = useRef(S().browse?.id === id ? S().browse : null);
+  const opened = useRef(!entry.current);
+  const [moving, setMoving] = useState<'up' | 'down' | 'nudge-up' | 'nudge-down' | null>(null);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { onUp?.(); }, []);
@@ -114,7 +119,7 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
     if (ext === 'pdf') { setPhase('pdf'); return; }
     if (!PAGED.has(ext)) { setPhase('external'); return; }
     let live = true;
-    S().patch(rec.id, { openedAt: Date.now() });
+    if (opened.current) S().patch(rec.id, { openedAt: Date.now() });
     bookFile(rec, ext).then((loaded) => {
       if (!live) return;
       if (!loaded.chapters.length) throw new Error('这本书里没有找到可以排版的正文。');
@@ -239,7 +244,7 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
     pageStyles().then((css) => {
       if (!live) return;
       // a book not started opens where its text does (a chapter opening on a right-hand page)
-      const start = posRef.current ? pageOf(posRef.current) : layout.firstText + 1;
+      const start = entry.current && !opened.current ? 1 : posRef.current ? pageOf(posRef.current) : layout.firstText + 1;
       flip = createFlipbook({
         stage: stageRef.current!, book: bookRef.current!, count: layout.pages.length, single,
         page: sheetOf,
@@ -261,6 +266,7 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
         clickGuard: () => { const s = performance.now() - swallowAt.current < 700; swallowAt.current = 0; return s; },
         onChange: (v: View) => {
           setView(v);
+          if (!opened.current && v.a > 1) { opened.current = true; S().patch(rec.id, { openedAt: Date.now() }); }
           // the reading position is the first text page in view
           const idx = [v.a - 1, v.b - 1].map((i) => layout.pages[i]).find((p) => p?.kind === 'text');
           if (!idx) return;
@@ -321,12 +327,42 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
   }, [measure, turning, tick, hls, panel]);
   useEffect(() => { const f = () => setTick((t) => t + 1); addEventListener('resize', f); return () => removeEventListener('resize', f); }, []);
 
-  // keys: T contents, B bookmark, N notes, Esc closes the popover or a panel, or goes back to the shelf
+  /* ---------- on the cover: ↑ ↓ to the neighbouring books, in the shelf's own order ---------- */
+  const onCover = phase === 'ready' && view?.a === 1;
+  const neighbours = useCallback(() => {
+    let sort: Sort = 'topic';
+    try { sort = (localStorage.getItem('rl:sort') as Sort) || 'topic'; } catch {}
+    const list = sortBooks(S().books.map(shelfBook), sort).filter((b) => b.ext && PAGED.has(b.ext));
+    const i = list.findIndex((b) => b.id === id);
+    return { prev: i > 0 ? list[i - 1] : null, next: i >= 0 && i < list.length - 1 ? list[i + 1] : null };
+  }, [S, id]);
+  // while you look at a cover, the books either side are read ahead, so the next one comes up quickly
+  useEffect(() => {
+    if (!onCover) return;
+    const t = setTimeout(() => { const nb = neighbours(); for (const b of [nb.next, nb.prev]) { const r = b && S().books.find((x) => x.id === b.id); if (r) readAhead(r); } }, 300);
+    return () => clearTimeout(t);
+  }, [onCover, neighbours, S]);
+  /** ↓ the next book (this cover lifts away, the next rises from below), ↑ the one before; at either end, a nudge. */
+  const browseTo = (dir: 1 | -1) => {
+    if (moving === 'up' || moving === 'down') return;
+    const nb = neighbours(), target = dir > 0 ? nb.next : nb.prev;
+    if (!target) { setMoving(dir > 0 ? 'nudge-down' : 'nudge-up'); setTimeout(() => setMoving(null), 440); return; }
+    flush();
+    setMoving(dir > 0 ? 'down' : 'up');
+    setTimeout(() => S().go({ name: 'read', id: target.id }, { browse: dir }), 240);
+  };
+  /** From the cover straight to where you stopped reading. */
+  const resume = () => { if (rec?.progress && layout) flipRef.current?.gotoPage(pageOf(rec.progress)); };
+
+  // keys: T contents, B bookmark, N notes, ↑ ↓ ↵ on the cover, Esc closes the popover or a panel, or goes back to the shelf
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest?.('input, textarea, select')) return;
+      const free = onCover && !panel && !lens;
       if (e.key === 'Escape') { e.preventDefault(); if (lens) closeLens('done'); else if (panel) setPanel(null); else back(); }
       else if (e.metaKey || e.ctrlKey || e.altKey) return;
+      else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && free) { e.preventDefault(); browseTo(e.key === 'ArrowDown' ? 1 : -1); }
+      else if (e.key === 'Enter' && free && rec?.progress && !(e.target as HTMLElement).closest?.('button, a')) { e.preventDefault(); resume(); }
       else if (e.key === 't') setPanel((p) => (p === 'toc' ? null : 'toc'));
       else if (e.key === 'n') setPanel((p) => (p === 'notes' ? null : 'notes'));
       else if (e.key === 'b') toggleMark();
@@ -383,7 +419,7 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
   const sidePanel = panel === 'toc' || panel === 'marks' || panel === 'notes';
 
   return (
-    <div className={`reader ${leaving ? 'is-leaving' : ''}`} style={{ ['--paper-face' as string]: paper.pp, ['--paper-edge' as string]: paper.pp2 }}>
+    <div className={`reader ${leaving ? 'is-leaving' : ''} ${entry.current ? 'is-browse' : ''}`} style={{ ['--paper-face' as string]: paper.pp, ['--paper-edge' as string]: paper.pp2 }}>
       <div className="stage" aria-hidden>
         <div className="aura">{cover && <img src={cover} alt="" className="on" />}</div>
         <div className="dots" />
@@ -408,7 +444,7 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
       </header>
 
       {(phase === 'ready' || phase === 'setting') && (
-        <div className={`rd-stage ${visible ? 'is-in' : ''} ${handoff ? 'handoff' : ''}`} ref={stageRef}>
+        <div className={`rd-stage ${visible ? 'is-in' : ''} ${handoff ? 'handoff' : ''} ${entry.current ? (entry.current.dir > 0 ? 'from-down' : 'from-up') : ''} ${moving ? `move-${moving}` : ''}`} ref={stageRef}>
           <div className="rd-book" ref={bookRef} />
           {phase === 'setting' && (
             <div className="rd-setting slim">
@@ -434,6 +470,17 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
       )}
 
       {phase === 'ready' && visible && <MarginNotes items={margin} hidden={turning} active={lens?.id} onOpen={(h, el) => openMark(h.id, bookRef.current?.querySelector(`.leaf mark[data-hl="${h.id}"]`) ?? el, true)} />}
+
+      {onCover && visible && !panel && (() => {
+        const nb = neighbours(), pct = rec.progress?.pct ?? 0;
+        return (
+          <p className="rd-cover-hint rd-ui" key={id}>
+            {(nb.prev || nb.next) && <><span><kbd>↑</kbd><kbd>↓</kbd> 换一本</span><i className="dot" /></>}
+            <span><kbd>→</kbd> 翻开</span>
+            {pct > 0 && <><i className="dot" /><button type="button" onClick={resume}><kbd>↵</kbd> 接着读 {Math.max(1, Math.round(pct * 100))}%</button></>}
+          </p>
+        );
+      })()}
 
       {phase === 'ready' && view && (
         <div className="rd-dock rd-ui">

@@ -91,7 +91,10 @@ export function createFlipbook(o) {
       lf.style.transform = `rotateY(${flipped ? -180 : 0}deg)`;
       lf.children[0].style.visibility = flipped ? 'hidden' : '';
       lf.children[1].style.visibility = flipped ? '' : 'hidden';
-      lf.style.zIndex = flipped ? i + 1 : n - i + 1;
+      // stacked within each pile counting from its top (the open pages), so the numbers stay small however long the
+      // book: the GL canvas (z 1500), the CSS turner (1000) and the cast shadow (900) always lie above the pages.
+      // (Counting over the whole book put a 1500-leaf book's pages above the canvas, and the turning page behind them.)
+      lf.style.zIndex = Math.max(1, 500 - (flipped ? S.cur - 1 - i : i - S.cur));
       const shown = S.spread ? (i >= S.cur - 2 && i <= S.cur + 1) : (i >= S.cur && i <= S.cur + 1);
       lf.style.visibility = shown && near ? 'visible' : 'hidden';
     });
