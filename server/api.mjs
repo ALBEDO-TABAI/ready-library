@@ -1,16 +1,19 @@
 // The local API under /api: the library, its files and covers, and the two places to find books.
 // Mounted into Vite in development (vite.config.ts) and served by server/index.mjs after a build.
-import { createReadStream, createWriteStream, existsSync, statSync, unlinkSync, renameSync, readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync } from 'node:fs';
+import { createReadStream, createWriteStream, existsSync, statSync, unlinkSync, renameSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { join, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { FILES, COVERS, CACHE, books, book, addBook, patchBook, removeBook, newId } from './db.mjs';
+import { FILES, COVERS, CACHE, books, book, addBook, patchBook, removeBook } from './db.mjs';
 import { epubMeta, nameMeta, extOf } from './bookmeta.mjs';
 import * as treasure from './sources/treasure.mjs';
 import * as zlib from './sources/zlib.mjs';
 import * as ctfile from './sources/ctfile.mjs';
 import * as jobs from './jobs.mjs';
+import { workDir, drop, sweep, touch } from './work.mjs';
+
+sweep();
 
 const TYPES = { epub: 'application/epub+zip', pdf: 'application/pdf', txt: 'text/plain; charset=utf-8', mobi: 'application/x-mobipocket-ebook', azw3: 'application/vnd.amazon.ebook', fb2: 'application/x-fictionbook+xml', djvu: 'image/vnd.djvu', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
 const READABLE = new Set(['epub', 'pdf', 'txt', 'mobi', 'azw3', 'fb2', 'djvu', 'md']);
@@ -159,9 +162,14 @@ export async function handle(req, res) {
     if (path === '/import' && M === 'PUT') {
       const name = String(q.name || 'book.epub').slice(0, 240);
       if (q.attach && !safeId(q.attach)) return fail(res, 400, 'bad id');
-      const tmp = join(CACHE, `up-${newId()}`);
-      await pipeline(req, createWriteStream(tmp));
-      return send(res, 200, { book: ingest(tmp, name, { attach: q.attach }) });
+      // the upload lands in its own folder; ingest moves it into the library, and the folder goes either way
+      // (an upload cut off halfway, or a file that turns out not to be a book, leaves nothing behind)
+      const dir = workDir('import');
+      try {
+        const tmp = join(dir, 'upload');
+        await pipeline(req, createWriteStream(tmp));
+        return send(res, 200, { book: ingest(tmp, name, { attach: q.attach }) });
+      } finally { drop(dir); }
     }
 
     /* A search result put on the shelf before its file is here (a wish), or with a cover to fetch. */
@@ -210,17 +218,14 @@ export async function handle(req, res) {
       const r = await json(req);
       if (!/^[\w]+:[\w]+$|^\d+$/.test(String(r.ref || ''))) return fail(res, 400, 'bad zlib reference');
       if (r.attach && !safeId(r.attach)) return fail(res, 400, 'bad id');
-      const dir = join(CACHE, `dl-${newId()}`);
-      mkdirSync(dir, { recursive: true });
+      // zlib downloads into a folder of the job's own, which goes when the job ends (zlib.download drops it)
+      const dir = workDir('zlib');
       const meta = { ...(r.meta ?? {}), source: 'zlib', sourceRef: r.ref };
       const j = zlib.download(r.ref, dir, { title: meta.title, attach: r.attach }, async (out) => {
-        const got = out.path && existsSync(out.path) ? out.path : join(dir, readdirSync(dir)[0] ?? '');
-        if (!existsSync(got)) throw new Error('下载完成但找不到文件');
-        const tmp = join(CACHE, `up-${newId()}`);
-        renameSync(got, tmp);
-        rmSync(dir, { recursive: true, force: true });
+        const got = out.path && existsSync(out.path) ? out.path : join(dir, readdirSync(dir).find((f) => !f.startsWith('.')) ?? '');
+        if (!existsSync(got) || statSync(got).isDirectory()) throw new Error('下载完成但找不到文件');
         const existing = r.attach || books().find((b) => b.sourceRef === r.ref)?.id;
-        const b = ingest(tmp, basename(got), { attach: existing, meta });
+        const b = ingest(got, basename(got), { attach: existing, meta });
         if (meta.cover) await adoptCover(b.id, meta.cover);
         return book(b.id);
       });
@@ -244,12 +249,19 @@ export async function handle(req, res) {
       try {
         const j = ctfile.fetchBook(link, { title: b.title, attach: first }, (files) => {
           // one file: it becomes the book on the shelf. Several (a set of volumes): each its own book, named by itself.
-          const base = book(first);
-          const made = files.map((f, i) => ingest(f.path, f.name, {
-            attach: i === 0 && base && !base.file ? first : undefined,
-            retitle: files.length > 1,
-            meta: { source: 'treasure', sourceUrl: i === 0 ? link : undefined, sourceRef: i === 0 ? base?.sourceRef : `${base?.sourceRef ?? link}#${i + 1}`, topic: base?.topic, tags: base?.tags },
-          }));
+          // A volume that can't be shelved doesn't stop the others (its file goes with the job's folder).
+          const base = book(first), made = [], errors = [];
+          files.forEach((f, i) => {
+            try {
+              made.push(ingest(f.path, f.name, {
+                attach: !made.length && base && !base.file ? first : undefined,
+                retitle: files.length > 1,
+                meta: { source: 'treasure', sourceUrl: !made.length ? link : undefined, sourceRef: !made.length ? base?.sourceRef : `${base?.sourceRef ?? link}#${i + 1}`, topic: base?.topic, tags: base?.tags },
+              }));
+            } catch (e) { errors.push(`${f.name}：${e.message}`); }
+          });
+          if (!made.length) throw new Error(errors[0] || '没有可以上架的文件');
+          if (errors.length) console.warn('[treasure] some volumes were not shelved:', errors.join('; '));
           return { ...made[0], more: made.length - 1 };
         });
         return send(res, 200, { job: j, book: book(first) });
@@ -281,7 +293,7 @@ export async function handle(req, res) {
       if (!/^https?:\/\//.test(u)) return fail(res, 400, 'bad url');
       const key = createHash('sha1').update(u).digest('hex').slice(0, 20);
       const hit = readdirSync(CACHE).find((f) => f.startsWith(`cv-${key}.`));
-      if (hit) return serveFile(req, res, join(CACHE, hit), TYPES[extOf(hit)] || 'image/jpeg');
+      if (hit) { touch(join(CACHE, hit)); return serveFile(req, res, join(CACHE, hit), TYPES[extOf(hit)] || 'image/jpeg'); }
       try {
         const { bytes, type } = await fetchImage(u);
         const ext = /png/.test(type) ? 'png' : /webp/.test(type) ? 'webp' : 'jpg';

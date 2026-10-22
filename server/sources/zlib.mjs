@@ -3,6 +3,7 @@
 // shell), and branch on its documented exit codes: 3 = not logged in, 4 = network / mirror, 130 = cancelled.
 import { spawn } from 'node:child_process';
 import * as jobs from '../jobs.mjs';
+import { drop } from '../work.mjs';
 
 const BIN = process.env.ZLIB_BIN || 'zlib';
 
@@ -110,6 +111,6 @@ export function download(ref, dir, { title, attach } = {}, onDone) {
     } catch (e) {
       jobs.finish(j, { state: 'error', error: e.message });
     }
-  });
+  }).finally(() => drop(dir));   // the download folder goes whatever happened (onDone has moved the book out of it)
   return j;
 }
