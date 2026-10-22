@@ -16,6 +16,7 @@ import { join, basename } from 'node:path';
 import * as jobs from '../jobs.mjs';
 import { CACHE, newId } from '../db.mjs';
 import { extOf } from '../bookmeta.mjs';
+import { archiveTools } from '../platform.mjs';
 
 const API = process.env.CTFILE_API || 'https://urlapi.ctfile.com/api/v2';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
@@ -216,14 +217,21 @@ async function unpackElsewhere(buf, name, j) {
     const out = join(dir, 'out');
     mkdirSync(out);
     let ok = false;
-    for (const bin of ['bsdtar', 'tar']) {
+    const signal = jobs.own(j.id).ctl.signal;
+    for (const [bin, args] of archiveTools(arc, out)) {
+      signal.throwIfAborted();
       ok = await new Promise((res) => {
-        const p = spawn(bin, ['-xf', arc, '-C', out], { stdio: 'ignore' });
-        p.on('error', () => res(false)); p.on('close', (code) => res(code === 0));
+        const p = spawn(bin, args, { stdio: 'ignore', windowsHide: true });
+        const abort = () => p.kill();
+        signal.addEventListener('abort', abort, { once: true });
+        const timer = setTimeout(abort, 120_000);
+        const done = (success) => { clearTimeout(timer); signal.removeEventListener('abort', abort); res(success); };
+        p.on('error', () => done(false)); p.on('close', (code) => done(code === 0));
       });
+      signal.throwIfAborted();
       if (ok) break;
     }
-    if (!ok) throw new Error(`解不开 .${extOf(name)} 压缩包（系统里没有 bsdtar）。可以点「去网盘手动下载」`);
+    if (!ok) throw new Error(`解不开 .${extOf(name)} 压缩包。${process.platform === 'win32' ? '请安装 7-Zip 后重试，或' : '请安装 bsdtar，或'}点「去网盘手动下载」`);
     const files = [];
     const walk = (d, rel = '') => { for (const f of readdirSync(d, { withFileTypes: true })) { const p = join(d, f.name), r = rel ? `${rel}/${f.name}` : f.name; if (f.isDirectory()) walk(p, r); else files.push({ name: r, usz: statSync(p).size, path: p }); } };
     walk(out);
@@ -318,6 +326,7 @@ async function run(j, c, onBooks) {
   }
   audit(c, got.audit, { file_name: got.file_name || j.file, total_bytes: size, bytes_downloaded: j.bytes, downloaded_bytes: j.bytes, progress: Math.min(100, (j.bytes / Math.max(1, size)) * 100), duration: Math.max(1, Math.floor((Date.now() - t0) / 1000)), event: 'complete', status: 'completed', speed: j.speed || 0 });
 
+  signal.throwIfAborted();
   j.stage = 'unpacking'; j.line = books.length > 1 ? `${books.length} 本，正在上架` : '正在上架';
   const tmps = books.map((b) => { const p = join(CACHE, `up-${newId()}`); writeFileSync(p, b.bytes); return { name: b.name, path: p }; });
   return onBooks(tmps);

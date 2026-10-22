@@ -52,7 +52,7 @@ export function JobLine({ job, title, compact = false }: { job: Job; title?: str
         {title && <span className="jl-t">{title}</span>}
         <span className="jl-bar" data-busy={indeterminate || undefined}><i style={{ width: `${indeterminate ? 30 : Math.max(2, job.pct)}%` }} /></span>
         <span className="mono jl-s">{jobText(job, compact)}</span>
-        {job.src === 'treasure' && <button type="button" className="icon-btn jl-x tip up" data-tip="停止取回" onClick={(e) => { e.stopPropagation(); S().cancelJob(job.id); }} aria-label="停止取回"><Icon name="x" size={13} /></button>}
+        <button type="button" className="icon-btn jl-x tip up" data-tip="停止取回" onClick={(e) => { e.stopPropagation(); S().cancelJob(job.id); }} aria-label="停止取回"><Icon name="x" size={13} /></button>
       </div>
       {job.stage === 'captcha' && <Captcha job={job} autoFocus={!compact} />}
     </div>

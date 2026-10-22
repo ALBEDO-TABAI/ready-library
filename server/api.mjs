@@ -4,7 +4,7 @@ import { createReadStream, createWriteStream, existsSync, statSync, unlinkSync, 
 import { pipeline } from 'node:stream/promises';
 import { join, basename } from 'node:path';
 import { createHash } from 'node:crypto';
-import { spawn } from 'node:child_process';
+import { openPath } from './platform.mjs';
 import { FILES, COVERS, CACHE, books, book, addBook, patchBook, removeBook, newId } from './db.mjs';
 import { epubMeta, nameMeta, extOf } from './bookmeta.mjs';
 import * as treasure from './sources/treasure.mjs';
@@ -23,6 +23,7 @@ const send = (res, code, body, type = 'application/json; charset=utf-8') => {
 const fail = (res, code, msg) => send(res, code, { error: msg });
 async function json(req) {
   let s = '';
+  req.setEncoding('utf8');
   for await (const c of req) { s += c; if (s.length > 2e6) throw new Error('body too large'); }
   return s ? JSON.parse(s) : {};
 }
@@ -62,6 +63,7 @@ function ingest(tmp, name, { attach, meta = {}, retitle = false } = {}) {
   }
   const size = statSync(tmp).size;
   let b = attach ? book(attach) : null;
+  const old = filePath(b);
   const fields = {
     title: meta.title || found.title || '未命名',
     author: meta.author || found.author || '',
@@ -73,13 +75,14 @@ function ingest(tmp, name, { attach, meta = {}, retitle = false } = {}) {
     status: 'ready',
   };
   if (b) {
+    renameSync(tmp, join(FILES, `${b.id}.${ext}`));
     // keep the shelf's own title (the user may have renamed it); only fill what is missing
     patchBook(b.id, { ...fields, title: (!retitle && b.title) || fields.title, author: (!retitle && b.author) || fields.author }, { trusted: true });
   } else {
-    b = addBook({ ...fields, source: meta.source || 'local', sourceRef: meta.sourceRef, sourceUrl: meta.sourceUrl, topic: meta.topic, tags: meta.tags?.length ? meta.tags : (found.subjects ?? []) });
+    const id = newId();
+    renameSync(tmp, join(FILES, `${id}.${ext}`));
+    b = addBook({ id, ...fields, source: meta.source || 'local', sourceRef: meta.sourceRef, sourceUrl: meta.sourceUrl, topic: meta.topic, tags: meta.tags?.length ? meta.tags : (found.subjects ?? []) });
   }
-  const old = filePath(book(b.id));
-  renameSync(tmp, join(FILES, `${b.id}.${ext}`));
   if (old && old !== join(FILES, `${b.id}.${ext}`) && existsSync(old)) unlinkSync(old);
   if (cover && !coverPath(b.id)) { saveCover(b.id, cover.bytes, cover.type); patchBook(b.id, { cover: 'file' }, { trusted: true }); }
   return book(b.id);
@@ -92,17 +95,16 @@ async function adoptCover(id, url) {
   catch (e) { console.warn('[cover]', url, e.message); }
 }
 
-function reveal(p, open) {
-  const plat = process.platform;
-  const [cmd, args] = plat === 'darwin' ? ['open', open ? [p] : ['-R', p]] : plat === 'win32' ? ['explorer', open ? [p] : ['/select,', p]] : ['xdg-open', [open ? p : join(p, '..')]];
-  spawn(cmd, args, { detached: true, stdio: 'ignore' }).unref();
-}
-
 function serveFile(req, res, p, type) {
   const size = statSync(p).size;
-  const range = req.headers.range?.match(/bytes=(\d*)-(\d*)/);
+  const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
   if (range) {
-    const start = range[1] ? +range[1] : 0, end = range[2] ? Math.min(+range[2], size - 1) : size - 1;
+    const start = range[1] ? +range[1] : Math.max(0, size - Number(range[2]));
+    const end = range[1] && range[2] ? Math.min(+range[2], size - 1) : size - 1;
+    if ((!range[1] && !Number(range[2])) || !Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start >= size || end < start) {
+      res.writeHead(416, { 'content-range': `bytes */${size}` });
+      return res.end();
+    }
     res.writeHead(206, { 'content-type': type, 'content-range': `bytes ${start}-${end}/${size}`, 'accept-ranges': 'bytes', 'content-length': end - start + 1 });
     return createReadStream(p, { start, end }).pipe(res);
   }
@@ -150,7 +152,7 @@ export async function handle(req, res) {
       if (sub === '/reveal' && M === 'POST') {
         const fp = filePath(b);
         if (!fp || !existsSync(fp)) return fail(res, 404, '还没有这本书的文件');
-        reveal(fp, q.open === '1');
+        await openPath(fp, q.open === '1');
         return send(res, 200, { ok: true });
       }
     }

@@ -104,7 +104,13 @@
 .rd-error p { margin-top: 10px; color: var(--ink-2); line-height: 1.6; }
 .rd-error .row { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
 .rd-pdf { position: absolute; left: 16px; right: 16px; top: 76px; bottom: 16px; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-3); background: #fff; z-index: 5; }
-.rd-pdf iframe { width: 100%; height: 100%; border: 0; display: block; }
+.rd-pdf { display: flex; flex-direction: column; background: var(--stage); }
+.pdf-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px; background: var(--stage-2); color: var(--ink); }
+.pdf-toolbar input { width: 140px; min-width: 80px; padding: 6px 8px; border: 1px solid var(--hair); border-radius: 6px; color: var(--ink); background: var(--fill); }
+.pdf-area { position: relative; flex: 1; min-height: 0; }
+.pdf-scroll { position: absolute; inset: 0; overflow: auto; }
+.pdf-message { display: grid; place-content: center; position: absolute; inset: 0; padding: 24px; background: var(--stage); text-align: center; }
+.pdf-message input { margin: 12px; padding: 8px; }
 .rd-mark-on { color: var(--accent) !important; }
 
 @media (max-width: 760px) {

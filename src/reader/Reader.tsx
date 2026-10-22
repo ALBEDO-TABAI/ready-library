@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api, coverUrl, fileUrl, type BookRec, type Bookmark, type Highlight, type Marker } from '../lib/api';
 import { hash, lookOf, TOPIC } from '../lib/topics';
@@ -13,6 +13,8 @@ import { anchorOf, chapterText, pagesOf, paintMarks, sliceNonWs } from './marks'
 import { Lens, MarginNotes, NotesList, type Box, type LensState, type MarginItem } from './Notes';
 import { PAGED, take } from './preload';
 import pageCss from './page.css?raw';
+
+const PdfReader = lazy(() => import('./PdfReader'));
 
 type Flip = ReturnType<typeof createFlipbook>;
 type View = { a: number; b: number; count: number; spread: boolean; atStart: boolean; atEnd: boolean };
@@ -105,6 +107,8 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
   // 1 · the file → chapters
   useEffect(() => {
     if (!rec) return;
+    // A direct load/reload mounts the reader before the library has arrived.
+    if (!posRef.current && rec.progress) posRef.current = { chapter: rec.progress.chapter, offset: rec.progress.offset };
     const ext = rec.file?.ext;
     if (!ext) { setPhase('error'); setError('这本书的文件还没到。回书架打开它，可以自动取回或者导入文件。'); return; }
     if (ext === 'pdf') { setPhase('pdf'); return; }
@@ -414,12 +418,12 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
         </div>
       )}
       {phase === 'loading' && !handoff && <div className="rd-setting slim"><p className="caption"><span className="spinner" />打开书…</p></div>}
-      {phase === 'pdf' && <div className="rd-pdf"><iframe src={fileUrl(rec)} title={rec.title} /></div>}
+      {phase === 'pdf' && <Suspense fallback={<div className="rd-pdf pdf-message">正在打开 PDF…</div>}><PdfReader rec={rec} /></Suspense>}
       {(phase === 'error' || phase === 'external') && (
         <div className="rd-error">
           <div className="lg strong">
             <h2>{phase === 'external' ? `${rec.file?.ext.toUpperCase()} 要用别的阅读器打开` : '这本书打不开'}</h2>
-            <p>{phase === 'external' ? '书页翻动目前支持 EPUB 和 TXT（PDF 用浏览器自带的阅读器）。可以用系统默认的阅读器打开它，或者在 Z-Library 找一个 EPUB 版本。' : error}</p>
+            <p>{phase === 'external' ? '书页翻动目前支持 EPUB 和 TXT，PDF 使用内置阅读器。可以用系统默认的阅读器打开它，或者在 Z-Library 找一个 EPUB 版本。' : error}</p>
             <div className="row">
               {rec.file && <button type="button" className="btn solid" onClick={() => api.reveal(rec.id, true).catch((e) => S().toast({ text: e.message, kind: 'bad' }))}><Icon name="external-link" size={14} />用默认阅读器打开</button>}
               {phase === 'external' && <button type="button" className="btn" onClick={() => { S().go({ name: 'library' }); S().openFind(rec.title); }}><Icon name="search" size={14} />找 EPUB 版本</button>}

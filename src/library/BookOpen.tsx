@@ -203,7 +203,7 @@ export function BookOpen({ book, rec, origin, onClose, onRead, onTopic, onFavori
                   <span className="ob-tools">
                     <button type="button" className="ob-icon" aria-pressed={book.favorite} title={book.favorite ? '取消收藏' : '收藏'} onClick={onFavorite}><Icon name="star" size={15} fill={book.favorite} /></button>
                     <button type="button" className="ob-icon" title="改书名" onClick={() => setRenaming(true)}><Icon name="pen-line" size={14} /></button>
-                    {rec.file && <button type="button" className="ob-icon" title="在访达中显示" onClick={() => onReveal(false)}><Icon name="folder-open" size={14} /></button>}
+                    {rec.file && <button type="button" className="ob-icon" title="在文件夹中显示" onClick={() => onReveal(false)}><Icon name="folder-open" size={14} /></button>}
                     <button type="button" className="ob-icon" title="从书架拿下" onClick={onRemove}><Icon name="trash" size={14} /></button>
                   </span>
                 </div>

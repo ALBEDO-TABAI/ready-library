@@ -247,9 +247,12 @@ export function FindSheet() {
 
 function ZlibSetup({ st, onRecheck }: { st: ZlibStatus; onRecheck: () => Promise<unknown> }) {
   const [busy, setBusy] = useState(false);
+  const install = st.platform === 'win32'
+    ? ['安装 zlib 命令行（Windows）', 'winget install --id heartleo.zlib --exact']
+    : ['安装 zlib 命令行（macOS / Linux）', 'brew install heartleo/tap/zlib'];
   const steps = st.installed
     ? [['找一个能连上的镜像', 'zlib doctor'], ['用你的账号登录（密码只在终端里输入）', 'zlib login --domain https://<上一步的域名>']]
-    : [['安装 zlib 命令行（macOS / Linux）', 'brew install heartleo/tap/zlib'], ['找一个能连上的镜像', 'zlib doctor'], ['登录你的 Z-Library 账号', 'zlib login --domain https://<上一步的域名>']];
+    : [install, ['找一个能连上的镜像', 'zlib doctor'], ['登录你的 Z-Library 账号', 'zlib login --domain https://<上一步的域名>']];
   return (
     <div className="setup">
       <p className="setup-why"><i className={`src-led ${st.installed ? 'warn' : 'bad'}`} />{st.error || '还没有连上 Z-Library。'}</p>

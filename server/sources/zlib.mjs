@@ -3,28 +3,34 @@
 // shell), and branch on its documented exit codes: 3 = not logged in, 4 = network / mirror, 130 = cancelled.
 import { spawn } from 'node:child_process';
 import * as jobs from '../jobs.mjs';
+import { zlibBin } from '../platform.mjs';
 
-const BIN = process.env.ZLIB_BIN || 'zlib';
-
-function run(args, { timeout = 60_000, onErr } = {}) {
+function run(args, { timeout = 60_000, onErr, signal } = {}) {
   return new Promise((resolve) => {
     let out = '', err = '';
     let child;
     try {
-      child = spawn(BIN, args, { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NO_COLOR: '1' } });
+      if (signal?.aborted) return resolve({ code: 130, out, err: '已取消' });
+      child = spawn(zlibBin(), args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NO_COLOR: '1' } });
     } catch (e) {
       return resolve({ code: -1, out, err: e.message, missing: true });
     }
-    const t = setTimeout(() => child.kill('SIGTERM'), timeout);
+    let timedOut = false;
+    const abort = () => child.kill();
+    signal?.addEventListener('abort', abort, { once: true });
+    const t = setTimeout(() => { timedOut = true; child.kill(); }, timeout);
+    const cleanup = () => { clearTimeout(t); signal?.removeEventListener('abort', abort); };
+    child.stdout.setEncoding('utf8'); child.stderr.setEncoding('utf8');
     child.stdout.on('data', (d) => (out += d));
     child.stderr.on('data', (d) => { err += d; onErr?.(String(d)); });
-    child.on('error', (e) => { clearTimeout(t); resolve({ code: -1, out, err: e.message, missing: e.code === 'ENOENT' }); });
-    child.on('close', (code) => { clearTimeout(t); resolve({ code, out, err }); });
+    child.on('error', (e) => { cleanup(); resolve({ code: -1, out, err: e.message, missing: e.code === 'ENOENT' }); });
+    child.on('close', (code) => { cleanup(); resolve({ code: signal?.aborted ? 130 : timedOut ? -1 : code, out, err: timedOut ? 'zlib 响应超时，请检查网络或镜像后重试' : err }); });
   });
 }
 
 const reason = (r) =>
   r.missing ? '没有找到 zlib 命令行工具' :
+  r.code === 130 ? '已取消' :
   r.code === 3 ? '还没有登录 Z-Library（在终端运行 zlib login）' :
   r.code === 4 ? '连不上 Z-Library 镜像（在终端运行 zlib doctor 找可用域名）' :
   (r.err.trim().split('\n').pop() || `zlib 退出码 ${r.code}`);
@@ -32,7 +38,7 @@ const reason = (r) =>
 let cached = null, cachedAt = 0;
 /** Installed? Logged in? Cached for a minute, since `profile` is a network call. */
 export async function status(force = false) {
-  if (cached && !force && Date.now() - cachedAt < 60_000) return cached;
+  if (cached && !force && Date.now() - cachedAt < 60_000) return { ...cached, platform: process.platform };
   const v = await run(['version'], { timeout: 8000 });
   if (v.code !== 0) {
     cached = { installed: false, loggedIn: false, error: reason(v) };
@@ -49,7 +55,7 @@ export async function status(force = false) {
     cached = { installed: true, version, loggedIn: p.code === 0, quota, error: p.code === 0 ? '' : reason(p) };
   }
   cachedAt = Date.now();
-  return cached;
+  return { ...cached, platform: process.platform };
 }
 
 const yearOf = (y) => (Number(y) > 1000 ? Number(y) : undefined);
@@ -93,8 +99,10 @@ export async function feed(kind) {
 /* ---------- downloads run as jobs the page polls ---------- */
 export function download(ref, dir, { title, attach } = {}, onDone) {
   const j = jobs.create({ src: 'zlib', ref, title, attach, line: '开始下载…' });
+  const signal = jobs.own(j.id).ctl.signal;
   run(['download', ref, '--dir', dir, '--json'], {
     timeout: 30 * 60_000,
+    signal,
     onErr: (s) => {
       for (const line of s.split('\n')) {
         const m = line.match(/(\d+)%/);
@@ -103,6 +111,7 @@ export function download(ref, dir, { title, attach } = {}, onDone) {
       }
     },
   }).then(async (r) => {
+    if (signal.aborted) return jobs.finish(j, { state: 'error', error: '已取消' });
     if (r.code !== 0) return jobs.finish(j, { state: 'error', error: reason(r) });
     try {
       const result = JSON.parse(r.out.trim().split('\n').pop());

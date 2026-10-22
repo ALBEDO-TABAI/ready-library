@@ -18,7 +18,7 @@ export const own = (id) => inner.get(id) ?? null;
 /** A finished job stays a while, so a page that reloads still learns how it ended. */
 export function finish(j, patch) {
   Object.assign(j, patch, { finishedAt: Date.now() });
-  setTimeout(() => { all.delete(j.id); inner.delete(j.id); }, 10 * 60_000);
+  setTimeout(() => { all.delete(j.id); inner.delete(j.id); }, 10 * 60_000).unref();
 }
 
 export function cancel(id) {

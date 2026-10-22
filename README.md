@@ -4,7 +4,40 @@
 
 ## 跑起来
 
-需要 Node 20.19 以上。
+需要 Node 20.19+ 或 22.12+，推荐 Node 22 LTS。
+
+### Windows
+
+适用于 Windows 10 / 11。安装 [Node.js](https://nodejs.org/) 后，双击项目里的 `start-windows.cmd`：它会安装依赖、构建页面、启动本地服务并打开默认浏览器。使用期间保留启动窗口，按 `Ctrl+C` 停止。第一次准备需要联网；日常也可以直接运行 `npm start` 使用已经构建好的版本。
+
+中文、空格及 `&` 路径可用。文件和阅读记录默认保存在项目的 `data/` 中，更新代码不会删除它们。想换目录或端口，在 PowerShell 中运行：
+
+```powershell
+$env:READY_LIBRARY_DATA = 'D:\我的书库'
+$env:PORT = '5190'
+npm start
+```
+
+Z-Library 是可选书源，不影响本地导入和阅读。在 PowerShell 中安装并登录：
+
+```powershell
+winget install --id heartleo.zlib --exact
+zlib doctor
+zlib login --domain https://可用的镜像域名
+```
+
+安装后若终端找不到命令，重新打开终端；应用会额外检查 WinGet 的用户程序位置。手动安装的程序可以这样指定（指向 `.exe`，不要把引号包含在路径值内）：
+
+```powershell
+$env:ZLIB_BIN = 'C:\Tools\zlib\zlib.exe'
+npm start
+```
+
+RAR / 7z 优先使用 Windows 自带的 `tar.exe`，也支持已安装的 [7-Zip](https://www.7-zip.org/)。无法解压时会提示补装工具或手动下载。MOBI / AZW3 需要在 Windows 设置中关联支持该格式的阅读器；应用内的「在文件夹中显示」会选中原文件。
+
+批注用 `Ctrl+Enter` 保存；`Esc` 退出输入。其他阅读快捷键和原版相同。
+
+### 开发或手动启动
 
 ```bash
 npm install
@@ -63,7 +96,7 @@ zlib login --domain https://<上一步的域名>
 - 目录（`T`）、书签（`B`）、笔记（`N`）、排版（字号、行距、宋体/黑体/楷体、白纸/米黄/夜间、双页/单页）。读到哪一页随时存，下次从那里接着读；换字号后位置不变。
 - **划线和批注**：在正文上拖选文字（可以跨左右两页），选黄、绿、蓝、粉四种荧光笔或红笔下划线；「批注」在页边写字。有批注的划线，批注会出现在书页旁边的桌面上，和那一行对齐，有一根细线连回去；点它可以改。点书页上的划线可以换颜色、复制、擦掉。划线记的是「第几章第几个字」，所以换字号、字体、单双页后，它们还在原来那几个字上。「笔记」面板按章列出全部划线，可以跳过去，也可以一键复制成 Markdown。
 - 正文上单击仍然是翻页；拖选才是划线。
-- PDF 用浏览器自带的阅读器打开；MOBI / AZW3 可以一键用系统默认阅读器打开。
+- PDF 用内置阅读器显示，支持翻页、缩放、文字查找和位置保存；也可以交给系统阅读器。MOBI / AZW3 可以一键用系统默认阅读器打开。
 - 排版速度：《吶喊》约 0.1 秒，《紅樓夢》（1600 多页）约 2 秒。
 
 ## 文件
@@ -106,6 +139,7 @@ src/
 - 界面的玻璃材质、配色和字号体系、UI 字体来自 Ready Poster Printer（AGPL-3.0）。
 - 书架、书脊、取书动画、页面框架和页边批注的排布参考了 [Gloss](https://github.com/Nutlope/gloss) 的设计，代码是重写的（Gloss 仓库没有声明许可证，没有复制它的代码和图片）。
 - `src/reader/glturn.js`、`src/reader/flipbook.js` 改自 paper-flipbook（MIT，见 `licenses/paper-flipbook-LICENSE.txt`）。
+- PDF 显示使用 Mozilla PDF.js（Apache-2.0，见 `licenses/pdfjs-LICENSE.txt`）；字体与解码文件随本地构建提供，不需要联网加载。
 - 字体：Inter、Inter Tight、Geist Mono、Instrument Serif、Noto Sans SC、Noto Serif SC（SIL OFL）；图标：Lucide（ISC）；玻璃折射贴图：Glass-HQ/liquid-glass（MIT）。见 `licenses/`。
 - 宝库索引在运行时从原仓库下载，不随项目分发；Z-Library 通过你自己安装的 zlib 命令行访问。
 

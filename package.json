@@ -5,14 +5,18 @@
   "type": "module",
   "description": "Ready Library — a local bookshelf with Ready's glass look, Gloss-style shelves, paper page turns, and quick search across ebook-treasure-chest and Z-Library (zlib CLI).",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "predev": "node scripts/pdf-assets.mjs",
+    "prebuild": "node scripts/pdf-assets.mjs",
+    "dev": "node node_modules/vite/bin/vite.js",
+    "build": "node node_modules/typescript/bin/tsc -b && node node_modules/vite/bin/vite.js build",
     "start": "node server/index.mjs",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "node node_modules/typescript/bin/tsc -b --noEmit",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "dompurify": "^3.3.0",
     "fflate": "^0.8.2",
+    "pdfjs-dist": "5.4.624",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zustand": "^5.0.8"

@@ -39,7 +39,7 @@ export type ZlibHit = {
   id: string; ref: string; title: string; author: string; year?: number; publisher: string; language: string; ext: string; size: string;
   cover: string; description: string; isbn: string; pages: string; categories: string; rating: string; url: string;
 };
-export type ZlibStatus = { installed: boolean; loggedIn: boolean; version?: string; quota?: { remaining: number; allowed: number; reset: string } | null; error: string };
+export type ZlibStatus = { installed: boolean; loggedIn: boolean; platform?: string; version?: string; quota?: { remaining: number; allowed: number; reset: string } | null; error: string };
 export type TreasureStatus = { ready: boolean; loading: boolean; cached: boolean; count: number; updatedAt: number; error: string };
 export type JobStage = '' | 'queued' | 'resolving' | 'waiting' | 'captcha' | 'downloading' | 'unpacking' | 'done';
 /** A download running on the server: zlib's CLI, or a treasure-chest book fetched from CTFile. */

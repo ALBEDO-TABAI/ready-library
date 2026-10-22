@@ -82,7 +82,7 @@ export function Lens({ state, hl, marker, onMark, onNote, onCopy, onRemove, onCl
           <textarea ref={area} value={draft} onChange={(e) => setDraft(e.target.value)} rows={4} placeholder="在页边写点什么…" spellCheck={false}
             onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onNote(draft); onClose('done'); } if (e.key === 'Escape') { e.preventDefault(); onClose('done'); } }} />
           <div className="lens-row end">
-            <span className="caption"><kbd>⌘</kbd><kbd>↵</kbd> 保存 · <kbd>Esc</kbd> 不保存</span>
+            <span className="caption"><kbd>{/Mac/.test(navigator.platform) ? '⌘' : 'Ctrl'}</kbd><kbd>↵</kbd> 保存 · <kbd>Esc</kbd> 不保存</span>
             <button type="button" className="btn sm solid" onClick={() => { onNote(draft); onClose('done'); }}>保存</button>
           </div>
         </div>
