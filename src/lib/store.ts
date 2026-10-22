@@ -12,6 +12,8 @@ const routeOf = (hash: string): Route => {
 
 type State = {
   hydrated: boolean;
+  /** the start screen has lifted (the shelf plays its entrance then) */
+  awake: boolean;
   books: BookRec[];
   route: Route;
   theme: 'light' | 'dark';
@@ -62,6 +64,7 @@ const withTopic = (b: BookRec): BookRec => (b.topic ? b : { ...b, topic: topicFo
 
 export const useStore = create<State>((set, get) => ({
   hydrated: false,
+  awake: false,
   books: [],
   route: routeOf(location.hash),
   theme: initialTheme(),

@@ -105,7 +105,7 @@ export function Library({ leaving = false }: { leaving?: boolean }) {
   // "/" searches the shelf, ⌘F / F finds new books, R pulls one at random, Esc steps out of a topic.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (leaving || open || S().finding || (e.target as HTMLElement).closest?.('input, textarea, select, [contenteditable]')) return;
+      if (leaving || !S().awake || open || S().finding || (e.target as HTMLElement).closest?.('input, textarea, select, [contenteditable]')) return;
       if (e.key === '/') { e.preventDefault(); searchRef.current?.focus(); }
       else if ((e.key === 'f' && (e.metaKey || e.ctrlKey)) || (e.key === 'f' && !e.metaKey && !e.ctrlKey && !e.altKey)) { e.preventDefault(); S().openFind(); }
       else if (e.key === 'r' && !e.metaKey && !e.ctrlKey) pickOne();

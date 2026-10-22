@@ -68,7 +68,7 @@ export const api = {
     call<{ book: BookRec }>(`/import?name=${encodeURIComponent(file.name)}${attach ? `&attach=${attach}` : ''}`, { method: 'PUT', body: file }),
   reveal: (id: string, open = false) => call<{ ok: true }>(`/books/${id}/reveal${open ? '?open=1' : ''}`, { method: 'POST' }),
   putCover: (id: string, blob: Blob) => call<{ book: BookRec }>(`/books/${id}/cover`, { method: 'PUT', body: blob, headers: { 'content-type': blob.type || 'image/jpeg' } }),
-  sources: (force = false) => call<{ treasure: TreasureStatus; zlib: ZlibStatus }>(`/sources${force ? '?force=1' : ''}`),
+  sources: (force = false, warm = false) => call<{ treasure: TreasureStatus; zlib: ZlibStatus }>(`/sources?${force ? 'force=1&' : ''}${warm ? 'warm=1' : ''}`),
   treasure: (q: string, cat = '', page = 1) => call<{ books: TreasureHit[]; total: number; page: number; pages: number }>(`/search?src=treasure&q=${encodeURIComponent(q)}&cat=${encodeURIComponent(cat)}&page=${page}`),
   categories: () => call<{ categories: { name: string; count: number }[] }>('/treasure/categories'),
   refreshTreasure: () => call<TreasureStatus>('/treasure/refresh', { method: 'POST' }),
