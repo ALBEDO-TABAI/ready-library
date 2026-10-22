@@ -70,7 +70,11 @@ kbd, .kbd {
 }
 
 /* search capsule in the top bar */
-.qbox { height: 36px; width: 280px; border-radius: var(--r-pill); display: flex; align-items: center; gap: 8px; padding: 0 8px 0 12px; color: var(--ink-3); transition: width var(--d-4) var(--ease-liquid), background var(--d-2); }
+/* the shelf search is a cap of its own, the same 48px as the caps beside it: its icon sits where their first icon does
+   (24px in), the "/" hint as far from the right edge as their last one */
+.qbox { height: 48px; width: 280px; border-radius: var(--r-pill); display: flex; align-items: center; gap: 10px; padding: 0 14px 0 16px; color: var(--ink-3); transition: width var(--d-4) var(--ease-liquid), background var(--d-2); }
+.qbox kbd { flex: none; }
+.qbox .icon-btn { margin-right: -3px; }
 .qbox:focus-within { width: 340px; background: var(--fill); color: var(--ink-2); }
 .qbox input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font-size: var(--fs-md); color: var(--ink); }
 .qbox input::placeholder { color: var(--ink-3); }
@@ -188,7 +192,8 @@ kbd, .kbd {
 }
 @media (max-width: 760px) {
   .top { top: 10px; left: 10px; right: 10px; }
-  .qbox { width: 44px; } .qbox:focus-within { width: calc(100vw - 150px); }
+  .qbox { width: 48px; } .qbox:focus-within { width: calc(100vw - 150px); }
+  .qbox kbd { display: none; }
   .wordmark { display: none; }
 }
 

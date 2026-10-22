@@ -1,0 +1,114 @@
+{
+  "name": "ready-library-desktop",
+  "productName": "Ready Library",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Ready Library as a macOS app (Electron)",
+  "author": "ALBEDO-TABAI",
+  "homepage": "https://github.com/ALBEDO-TABAI/ready-library",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "bash scripts/prepare.sh && electron .",
+    "icons": "node scripts/make-icon.mjs && node scripts/make-dmg-background.mjs",
+    "dmg": "bash scripts/build-dmg.sh"
+  },
+  "build": {
+    "appId": "io.github.albedo-tabai.ready-library",
+    "productName": "Ready Library",
+    "copyright": "© ALBEDO-TABAI",
+    "artifactName": "Ready-Library-${version}-mac-${arch}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist",
+        "to": "web"
+      },
+      {
+        "from": "app/server.mjs",
+        "to": "server/server.mjs"
+      },
+      {
+        "from": "../licenses",
+        "to": "licenses"
+      },
+      {
+        "from": "licenses",
+        "to": "licenses"
+      }
+    ],
+    "electronLanguages": [
+      "zh_CN",
+      "zh_TW",
+      "en"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.books",
+      "icon": "build/icon.icns",
+      "identity": "-",
+      "sign": "scripts/adhoc-sign.cjs",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "darkModeSupport": true,
+      "minimumSystemVersion": "12.0",
+      "extendInfo": {
+        "NSHumanReadableCopyright": "© ALBEDO-TABAI"
+      }
+    },
+    "dmg": {
+      "title": "Ready Library",
+      "background": "build/background.tiff",
+      "icon": "build/icon.icns",
+      "iconSize": 112,
+      "window": {
+        "width": 660,
+        "height": 480
+      },
+      "contents": [
+        {
+          "x": 170,
+          "y": 206,
+          "type": "file"
+        },
+        {
+          "x": 490,
+          "y": 206,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 120,
+          "y": 900,
+          "type": "file",
+          "path": "build/background.tiff",
+          "name": ".background.tiff"
+        },
+        {
+          "x": 300,
+          "y": 900,
+          "type": "file",
+          "path": "build/icon.icns",
+          "name": ".VolumeIcon.icns"
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.8.0",
+    "electron-builder": "^26.15.3"
+  }
+}
