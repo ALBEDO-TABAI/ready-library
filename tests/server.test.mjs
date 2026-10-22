@@ -29,12 +29,28 @@ async function upload(name, body, attach = '') {
   return (await r.json()).book;
 }
 
+test('rejected and interrupted imports leave no temporary uploads', async () => {
+  const rejected = await fetch(base + '/api/import?name=not-a-book.exe', { method: 'PUT', body: 'invalid' });
+  assert.equal(rejected.status, 500);
+  assert.deepEqual(readdirSync(join(data, 'cache/work')), []);
+  const req = request(base + '/api/import?name=partial.txt', { method: 'PUT' });
+  req.on('error', () => {});
+  req.write('incomplete upload');
+  for (let i = 0; i < 100 && !readdirSync(join(data, 'cache/work')).length; i++) await new Promise((r) => setTimeout(r, 10));
+  assert.equal(readdirSync(join(data, 'cache/work')).length, 1);
+  req.destroy();
+  for (let i = 0; i < 100 && readdirSync(join(data, 'cache/work')).length; i++) await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(readdirSync(join(data, 'cache/work')), []);
+  assert.deepEqual((await (await fetch(base + '/api/library')).json()).books, []);
+});
+
 test('Chinese paths, replacement, saved reading state and restart', async () => {
   const b = await upload('中文 & 空格.txt', '第一章\r\n你好 Windows\r\n');
   await fetch(`${base}/api/books/${b.id}`, { method: 'PATCH', body: JSON.stringify({ bookmarks: [{ chapter: 0, offset: 3 }], progress: { chapter: 0, offset: 3, pct: 0.5 } }) });
   await upload('替换.md', '# 第二章', b.id);
   assert.equal(existsSync(join(data, 'files', b.id + '.txt')), false, 'replaced format must not leave its old file');
   assert.equal(readFileSync(join(data, 'files', b.id + '.md'), 'utf8'), '# 第二章');
+  assert.deepEqual(readdirSync(join(data, 'cache/work')), []);
   await new Promise((r) => setTimeout(r, 300));
   await stop(); await start();
   const saved = (await (await fetch(base + '/api/library')).json()).books[0];
@@ -101,4 +117,5 @@ test('a file locked by a Windows reader does not change book metadata on failed 
     assert.equal(saved.file.size, b.file.size); assert.equal(saved.file.name, b.file.name);
   } finally { const ended = once(locker, 'exit'); locker.stdin.end('\n'); await ended; }
   assert.equal(readFileSync(join(data, 'files', b.id + '.txt'), 'utf8'), 'original');
+  assert.deepEqual(readdirSync(join(data, 'cache/work')), [], 'failed replacement must remove its upload');
 });

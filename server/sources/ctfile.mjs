@@ -11,10 +11,10 @@
 // bsdtar where the system has it).
 import * as zl from 'node:zlib';
 import { spawn } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import * as jobs from '../jobs.mjs';
-import { CACHE, newId } from '../db.mjs';
+import { workDir, drop } from '../work.mjs';
 import { extOf } from '../bookmeta.mjs';
 import { archiveTools } from '../platform.mjs';
 
@@ -208,8 +208,7 @@ async function fromZip(rd, j, depth = 0) {
 
 /** RAR, 7z and friends: through bsdtar (libarchive), which macOS and Windows 10+ ship as `tar`. */
 async function unpackElsewhere(buf, name, j) {
-  const dir = join(CACHE, `x-${newId()}`);
-  mkdirSync(dir, { recursive: true });
+  const dir = workDir('unpack');
   try {
     const arc = join(dir, `archive.${extOf(name) || 'bin'}`);
     writeFileSync(arc, buf);
@@ -239,7 +238,7 @@ async function unpackElsewhere(buf, name, j) {
     if (!picked.length) throw new Error('压缩包里没有电子书文件');
     return picked.map((f) => ({ name: basename(f.name), bytes: readFileSync(f.path) }));
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    drop(dir);   // the archive and everything unpacked from it; only the chosen books were read out
   }
 }
 
@@ -328,8 +327,12 @@ async function run(j, c, onBooks) {
 
   signal.throwIfAborted();
   j.stage = 'unpacking'; j.line = books.length > 1 ? `${books.length} 本，正在上架` : '正在上架';
-  const tmps = books.map((b) => { const p = join(CACHE, `up-${newId()}`); writeFileSync(p, b.bytes); return { name: b.name, path: p }; });
-  return onBooks(tmps);
+  // the chosen books are written into the job's folder; shelving moves them into the library, the folder goes after
+  const dir = workDir('ctfile');
+  try {
+    const files = books.map((b, i) => { const p = join(dir, String(i)); writeFileSync(p, b.bytes); return { name: b.name, path: p }; });
+    return onBooks(files);
+  } finally { drop(dir); }
 }
 
 async function wholeFile(src, j, signal) {

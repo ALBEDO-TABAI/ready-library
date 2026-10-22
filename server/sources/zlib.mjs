@@ -4,6 +4,7 @@
 import { spawn } from 'node:child_process';
 import * as jobs from '../jobs.mjs';
 import { zlibBin } from '../platform.mjs';
+import { drop } from '../work.mjs';
 
 function run(args, { timeout = 60_000, onErr, signal } = {}) {
   return new Promise((resolve) => {
@@ -119,6 +120,6 @@ export function download(ref, dir, { title, attach } = {}, onDone) {
     } catch (e) {
       jobs.finish(j, { state: 'error', error: e.message });
     }
-  });
+  }).finally(() => drop(dir));   // the download folder goes whatever happened (onDone has moved the book out of it)
   return j;
 }

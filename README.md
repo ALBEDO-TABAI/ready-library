@@ -49,7 +49,7 @@ npm ci
 npm run win
 ```
 
-安装包在 `desktop/dist/Ready-Library-0.2.0-win-x64.exe`。也可直接打开
+安装包在 `desktop/dist/Ready-Library-<版本>-win-x64.exe`。也可直接打开
 `desktop/dist/win-unpacked/Ready Library.exe`，但移动时必须保留整个 `win-unpacked` 文件夹。
 开发时在 `desktop/` 运行 `npm start`；运行 `npm test` 检查独立应用的导入、阅读和重启保存。
 
@@ -71,6 +71,8 @@ npm start            # 打包后：同样是 http://127.0.0.1:5190，只监听�
 ```
 
 书架、书的文件和封面都放在项目里的 `data/`，整个文件夹拷走就是整座书架。想放到别处，启动前设 `READY_LIBRARY_DATA=/路径`。
+
+下载、解压和导入都在 `data/cache/work/` 里进行，一个任务一个文件夹。书上架时文件从那里**移进**书库；之后不管任务是上架、失败、取消还是中途断开，那个文件夹都整个删掉，压缩包里用不上的格式、下载一半的文件都不会留下。每次启动时会清掉上次没跑完的任务文件夹（例如下载中途退出了应用），以及一个月没用过的搜索结果封面缩略图。
 
 ### Mac 应用（DMG）
 
@@ -144,6 +146,7 @@ server/                 本地接口（Node，无依赖框架）
   db.mjs                data/library.json 的读写
   bookmeta.mjs          从 EPUB 读书名、作者、封面
   jobs.mjs              下载任务（两个书源共用），页面轮询进度
+  work.mjs              每个任务的临时文件夹：用完即删，启动时清扫
   sources/treasure.mjs  宝库索引：下载、缓存、搜索
   sources/ctfile.mjs    城通网盘：分享页的接口流程、验证码转交、只取压缩包里的 EPUB
   sources/zlib.mjs      zlib 命令行：status / search / download（只用 JSON 模式和退出码）

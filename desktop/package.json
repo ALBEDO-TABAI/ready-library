@@ -2,7 +2,7 @@
   "name": "ready-library-desktop",
   "productName": "Ready Library",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Ready Library desktop app for Windows and macOS (Electron)",
   "author": "ALBEDO-TABAI",
   "homepage": "https://github.com/ALBEDO-TABAI/ready-library",

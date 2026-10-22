@@ -2,7 +2,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdtempSync, readFileSync, rmSync, mkdirSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { zipSync } from 'fflate';
@@ -13,7 +13,7 @@ process.env.READY_LIBRARY_DATA = data;
 let server, base, ct, jobs, zlib;
 const bookBytes = epub();
 const archives = {
-  zip: Buffer.from(zipSync({ '目录/中文 & 空格.epub': bookBytes, '目录/中文.mobi': Buffer.from('unused') })),
+  zip: Buffer.from(zipSync({ '目录/中文 & 空格?问号.epub': bookBytes, '目录/中文.mobi': Buffer.from('unused') })),
   '7z': readFileSync(new URL('./fixtures/books.7z', import.meta.url)),
 };
 const waitUntil = async (fn) => {
@@ -54,6 +54,7 @@ for (const ext of ['zip', '7z']) test(`download and unpack ${ext} in a Chinese W
   assert.equal(j.state, 'done', j.error); assert.equal(imported.length, 1); assert.match(imported[0].name, /\.epub$/);
   if (ext === 'zip') assert.deepEqual(imported[0].bytes, bookBytes);
   else assert.equal(imported[0].bytes.subarray(0, 2).toString(), 'PK');
+  assert.deepEqual(readdirSync(join(data, 'cache/work')), [], 'archives and unused formats must be removed');
 });
 
 test('cancel active and queued downloads without importing', async () => {
@@ -88,6 +89,8 @@ test('zlib downloads to a path with spaces and cancellation stops the child', as
   const dir = join(data, '中文 & 下载'); mkdirSync(dir);
   const j = zlib.download('42:hash', dir, {}, (out) => { assert.equal(readFileSync(out.path, 'utf8'), '第一章\r\n测试下载'); return { title: '中文' }; });
   await waitUntil(() => j.state !== 'running'); assert.equal(j.state, 'done', j.error);
+  await waitUntil(() => !existsSync(dir));
+  mkdirSync(dir);
   process.env.FAKE_ZLIB_MODE = 'slow';
   const slow = zlib.download('42:slow', dir, {}, () => assert.fail('cancelled download imported'));
   await waitUntil(() => existsSync(join(dir, 'started')));
@@ -96,4 +99,5 @@ test('zlib downloads to a path with spaces and cancellation stops the child', as
   await waitUntil(() => slow.state !== 'running');
   assert.equal(slow.error, '已取消');
   assert.throws(() => process.kill(pid, 0));
+  await waitUntil(() => !existsSync(dir));
 });

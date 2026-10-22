@@ -5,6 +5,7 @@ const { execFileSync } = require('node:child_process');
 const { build } = require('esbuild');
 const root = path.resolve(__dirname, '../..');
 for (const args of [
+  [require.resolve('electron/install.js')],
   ['scripts/pdf-assets.mjs'],
   [require.resolve('typescript/bin/tsc'), '-b'],
   [path.join(root, 'node_modules/vite/bin/vite.js'), 'build'],
