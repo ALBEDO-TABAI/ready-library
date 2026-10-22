@@ -182,6 +182,8 @@ export async function handle(req, res) {
 
     /* ---------- finding books ---------- */
     if (path === '/sources' && M === 'GET') {
+      // warm: read the index from its disk cache now (never from the network), so its size is known and search is quick
+      if (q.warm === '1' && treasure.status().cached && !treasure.status().ready) await treasure.load().catch(() => {});
       return send(res, 200, { treasure: treasure.status(), zlib: await zlib.status(q.force === '1') });
     }
     if (path === '/search' && M === 'GET') {

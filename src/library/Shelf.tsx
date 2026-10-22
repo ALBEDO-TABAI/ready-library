@@ -1,4 +1,5 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useStore } from '../lib/store';
 import { groupOf, lookOf, type ShelfBook, type Sort } from '../lib/topics';
 import { Spine } from './Book';
 
@@ -81,9 +82,15 @@ export function Shelf({ books, shown, sort, openId, fresh, onOpen, onLabel }: {
     const ro = new ResizeObserver(() => setWidth(el.clientWidth));
     ro.observe(el);
     setWidth(el.clientWidth);
-    const t = setTimeout(() => setEntering(false), 1800);
-    return () => { ro.disconnect(); clearTimeout(t); };
+    return () => ro.disconnect();
   }, []);
+  // the books drop in once the start screen has lifted, not unseen beneath it
+  const awake = useStore((s) => s.awake);
+  useEffect(() => {
+    if (!awake) return;
+    const t = setTimeout(() => setEntering(false), 1800);
+    return () => clearTimeout(t);
+  }, [awake]);
 
   const visible = useMemo(() => books.filter((b) => shown.has(b.id)), [books, shown]);
   const { pos, labels, rows, ends } = useMemo(() => arrange(visible, width, sort), [visible, width, sort]);

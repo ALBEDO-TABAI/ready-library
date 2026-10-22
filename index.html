@@ -6,8 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ready Library</title>
     <meta name="description" content="Ready Library — 一个放在自己电脑上的书架：玻璃质感的界面、按类上架的书脊、像纸一样翻页，还能从电子书宝库和 Z-Library 快速找书。" />
+    <!-- the start screen's paper, before any script or stylesheet has loaded (no white flash), in the saved theme -->
+    <style>html { background: #ebebee; } html[data-theme='dark'] { background: #0b0b0d; }</style>
+    <script>try { var t = localStorage.getItem('rl:theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); document.documentElement.dataset.theme = t; } catch (e) {}</script>
     <link rel="preload" href="/ui-fonts/Inter.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/ui-fonts/InstrumentSerif.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/ui-fonts/InstrumentSerifItalic.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/ui-fonts/GeistMono.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="root"></div>

@@ -191,3 +191,45 @@ kbd, .kbd {
   .qbox { width: 44px; } .qbox:focus-within { width: calc(100vw - 150px); }
   .wordmark { display: none; }
 }
+
+/* splash: the same sheet as Ready Poster Printer's start screen (its README banner, laid out on a 2200 × 1396 frame).
+   The type block takes about 43% of the window's width or 50% of its height; the small lines keep a legible floor. */
+.splash { --u: min(max(.32px, min(calc(43vw / 1990), calc(50vh / 1207))), calc(90vw / 2200), calc(90vh / 1396)); position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; overflow: hidden; background: var(--stage); color: var(--ink); font-family: var(--font-ui); transition: opacity .38s ease; }
+.splash.out { opacity: 0; pointer-events: none; }
+.sp-art { position: relative; width: calc(2200 * var(--u)); height: calc(1396 * var(--u)); text-align: center; transform: translateY(calc(-56 * var(--u))); }
+.sp-art > * { position: absolute; left: 0; right: 0; margin: 0 auto; line-height: 1; white-space: nowrap; }
+.sp-kicker { top: calc(140 * var(--u)); font-size: max(10px, calc(26 * var(--u))); font-weight: 500; letter-spacing: .38em; padding-left: .38em; text-transform: uppercase; }
+.splash h1 { top: calc(215 * var(--u)); font: 400 calc(296 * var(--u))/1 var(--font-serif); letter-spacing: -.01em; }
+.splash h1 i { font-style: italic; }
+.sp-zh { top: calc(574 * var(--u)); font-size: calc(58 * var(--u)); letter-spacing: .16em; padding-left: .16em; }
+.sp-en { top: calc(668 * var(--u)); font: italic 400 calc(49 * var(--u))/1 var(--font-serif); letter-spacing: -.01em; }
+.load-bar { top: calc(793 * var(--u)); width: calc(1420 * var(--u)); height: 1px; background: var(--ink-3); overflow: hidden; }
+.load-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); }
+.sp-stats { top: calc(849 * var(--u)); width: calc(1420 * var(--u)); display: grid; grid-template-columns: repeat(4, 1fr); padding: 0; margin: 0 auto; list-style: none; opacity: 0; transition: opacity .5s var(--ease-out); }
+.sp-stats.on { opacity: 1; }
+.sp-stats li { display: flex; flex-direction: column; align-items: center; padding-bottom: calc(4 * var(--u)); border-left: 1px solid var(--hair-2); }
+.sp-stats li:first-child { border-left: 0; }
+.sp-stats b { margin-top: calc(-2 * var(--u)); font: 400 calc(99 * var(--u))/1 var(--font-serif); font-variant-numeric: tabular-nums; }
+.sp-stats span { margin-top: calc(18 * var(--u)); font-size: max(11px, calc(27 * var(--u))); font-weight: 700; letter-spacing: .16em; padding-left: .16em; }
+.sp-stats small { margin-top: calc(16 * var(--u)); font-size: max(8px, calc(18 * var(--u))); font-weight: 500; letter-spacing: .3em; padding-left: .3em; text-transform: uppercase; color: var(--ink-2); }
+.sp-repo { top: calc(1268 * var(--u)); font: 500 max(12px, calc(39 * var(--u)))/1 var(--font-mono); }
+.sp-credit { top: calc(1334 * var(--u)); font-size: max(9px, calc(20 * var(--u))); font-weight: 500; letter-spacing: .4em; padding-left: .4em; text-transform: uppercase; color: var(--ink-2); }
+/* under the splash the shelf is laid out and painted, but its entrance waits: it plays as the splash fades */
+html[data-waking] .library, html[data-waking] .library * { animation-play-state: paused !important; }
+/* a narrow window: the same sheet, stacked, the stats two by two */
+@media (max-width: 700px) {
+  .sp-art { width: auto; height: auto; transform: none; padding: 0 24px; display: flex; flex-direction: column; align-items: center; }
+  .sp-art > * { position: static; white-space: normal; }
+  .sp-kicker { font-size: 10px; letter-spacing: .24em; padding-left: .24em; line-height: 1.8; max-width: 320px; }
+  .splash h1 { margin-top: 10px; font-size: clamp(48px, 15vw, 72px); }
+  .sp-zh { margin-top: 14px; font-size: 15px; letter-spacing: .08em; padding-left: .08em; line-height: 1.5; }
+  .sp-en { margin-top: 6px; font-size: 15px; }
+  .load-bar { width: min(320px, 82vw); margin-top: 22px; }
+  .sp-stats { margin-top: 20px; width: min(340px, 86vw); grid-template-columns: repeat(2, 1fr); row-gap: 18px; }
+  .sp-stats li:nth-child(3) { border-left: 0; }
+  .sp-stats b { font-size: 36px; }
+  .sp-stats span { margin-top: 8px; font-size: 11px; letter-spacing: .1em; padding-left: .1em; }
+  .sp-stats small { margin-top: 6px; font-size: 8px; letter-spacing: .2em; padding-left: .2em; }
+  .sp-repo { margin-top: 30px; font-size: 12px; }
+  .sp-credit { margin-top: 10px; font-size: 9px; letter-spacing: .3em; padding-left: .3em; }
+}
