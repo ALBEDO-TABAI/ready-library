@@ -14,7 +14,7 @@
 .pg-foot .dotx { width: 5px; height: 5px; border-radius: 50%; background: #ff5a1f; }
 .verso .pg-foot { flex-direction: row-reverse; }
 .pg-body { position: absolute; left: 56px; right: 56px; top: 80px; height: 682px; overflow: hidden; }
-.pg-flow { display: flow-root; font-size: var(--fs, 18px); line-height: var(--lh, 1.8); text-align: justify; hanging-punctuation: allow-end; overflow-wrap: break-word; word-break: normal; line-break: strict; }
+.pg-flow { display: flow-root; font-weight: var(--fw, 400); font-size: var(--fs, 18px); line-height: var(--lh, 1.8); text-align: justify; hanging-punctuation: allow-end; overflow-wrap: break-word; word-break: normal; line-break: strict; }
 .pg-flow > :first-child { margin-top: 0 !important; }
 .pg-flow p, .pg-flow li, .pg-flow dd, .pg-flow blockquote { margin: 0; }
 .pg-flow p { text-indent: 2em; }

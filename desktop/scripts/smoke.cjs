@@ -55,6 +55,13 @@ const timeout = setTimeout(() => { console.error('Desktop test timed out'); app.
   const epub = books.find((book) => book.file.ext === 'epub');
   await win.loadURL(`rl://app/#/read/${epub.id}`);
   await until(() => win.webContents.executeJavaScript("!!document.querySelector('.rd-stage.is-in .sheet')"), 'EPUB did not render through the desktop protocol');
+  if (process.argv.includes('create')) {
+    await win.webContents.executeJavaScript(`document.querySelector('[data-tip="排版"]').click()`);
+    await win.webContents.executeJavaScript(`[...document.querySelectorAll('[role=radio]')].find(b => b.textContent === 'MiSans').click()`);
+    await until(() => win.webContents.executeJavaScript("document.fonts.check('330 18px MiSans') && !!document.querySelector('.rd-stage.is-in .pg-flow p') && getComputedStyle(document.querySelector('.pg-flow p')).fontFamily.includes('MiSans')"), 'MiSans did not load');
+    await win.webContents.executeJavaScript(`const slider = document.querySelector('[aria-label="MiSans 字重"]'); slider.value = '471'; slider.dispatchEvent(new Event('change', { bubbles: true }));`);
+  }
+  await until(() => win.webContents.executeJavaScript(`[...document.querySelectorAll('.leaf .pg-flow p')].some(p => getComputedStyle(p).fontWeight === '471' && getComputedStyle(p).fontFamily.includes('MiSans'))`), 'MiSans weight missing after selection or restart');
   console.log('Desktop passed: PATH, menu, protocol, import, Chinese notes, PDF, EPUB, ' + (process.argv.includes('create') ? 'creation' : 'restart persistence'));
   clearTimeout(timeout); app.quit();
 })().catch((error) => { console.error(error); clearTimeout(timeout); app.exit(1); });
