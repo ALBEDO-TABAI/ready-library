@@ -33,7 +33,7 @@ export function parseLink(link) {
   return { origin: u.origin, id: m[1], passcode: u.searchParams.get('p') || '', link };
 }
 
-const context = (c) => ({ kind: 'file', id: c.id, folder_id: '0', fk: '', passcode: c.passcode, type_id: '0' });
+const context = (c) => ({ kind: 'file', id: c.id, folder_id: '0', fk: '', passcode: c.passcode, type_id: '0', ...(c.accessPass && { access_pass: c.accessPass }) });
 
 async function call(c, path, { params, body, signal } = {}) {
   const u = new URL(API + path);
@@ -48,15 +48,30 @@ async function call(c, path, { params, body, signal } = {}) {
   try { return await res.json(); } catch { throw new Error(`网盘接口返回了看不懂的内容（HTTP ${res.status}）`); }
 }
 
-async function resource(c, signal) {
-  const r = await call(c, '/resource', { params: context(c), signal });
-  if (r.code === 423) throw new Error('网盘提取码不对，这个链接可能换过密码');
+async function resource(j, c, signal) {
+  let params = context(c);
+  let r = await call(c, '/resource', { params, signal });
+  for (let round = 1; r.code === 423; round++) {
+    const { error_type: error, captcha_type: type } = r.data ?? {};
+    if (error === 'passcode_incorrect') throw new Error('网盘提取码不对，这个链接可能换过密码');
+    if (!['captcha_required', 'captcha_invalid', 'captcha_expired'].includes(error) ||
+        !['altcha', 'turnstile'].includes(type) || round > 6) {
+      throw new Error(r.msg || r.message || '网盘未能解锁这个分享，可以点「去网盘手动下载」');
+    }
+    signal.throwIfAborted();
+    Object.assign(j, { stage: 'human-check', checkType: type, checkRound: round, line: '请完成网盘验证' });
+    const token = await waitForAnswer(j);
+    j.stage = 'resolving';
+    params = { ...context(c), [type + '_token']: token };
+    r = await call(c, '/resource', { params, signal });
+  }
   const file = r.data?.file;
   if (r.code !== 200 || !file) throw new Error(r.msg || r.message || '网盘上找不到这个文件，链接可能已经失效');
   if (file.code && file.code !== 200) throw new Error(file.message || file.msg || '这个分享现在打不开');
   const cap = r.data.capabilities ?? {};
   if (cap.download === false || cap.canDownload === false) throw new Error('这个文件现在不允许下载');
   if (cap.vip_required === true) throw new Error('这个文件只有城通会员能下载');
+  c.accessPass = r.data.access_pass;
   return file;
 }
 
@@ -254,26 +269,35 @@ async function countdown(j, seconds, signal) {
 async function ask(j, c, type, signal, again) {
   let cap = await captcha(c, type, signal);
   j.stage = 'captcha'; j.captcha = cap.image; j.line = again ? '验证码不对，换了一张，再试一次' : '网盘要一个验证码';
-  const o = jobs.own(j.id);
   try {
-    const answer = await new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error('验证码等太久了，任务已停下')), 15 * 60_000);
-      o.captcha = {
-        resolve: (a) => { clearTimeout(t); resolve(a); },
-        reject: (e) => { clearTimeout(t); reject(e); },
-        refresh: async () => { cap = await captcha(c, type, signal); j.captcha = cap.image; },
-      };
-    });
+    const answer = await waitForAnswer(j, async () => { cap = await captcha(c, type, signal); j.captcha = cap.image; });
     return { challenge: cap.challenge, answer };
-  } finally { o.captcha = null; j.captcha = undefined; }
+  } finally { j.captcha = undefined; }
 }
-export function answer(id, text) { const o = jobs.own(id); if (!o?.captcha) return false; o.captcha.resolve(String(text).trim().slice(0, 16)); return true; }
-export async function refreshCaptcha(id) { const o = jobs.own(id); if (!o?.captcha) return false; await o.captcha.refresh(); return true; }
+
+async function waitForAnswer(j, refresh) {
+  const o = jobs.own(j.id);
+  o.ctl.signal.throwIfAborted();
+  let timer;
+  try {
+    return await new Promise((resolve, reject) => {
+      timer = setTimeout(() => reject(new Error('验证码等太久了，任务已停下')), 15 * 60_000);
+      o.captcha = { resolve, reject, refresh };
+    });
+  } finally { clearTimeout(timer); o.captcha = null; }
+}
+export function answer(id, text, round) {
+  const j = jobs.get(id), pending = jobs.own(id)?.captcha;
+  if (!pending || (j.stage === 'human-check' ? round !== j.checkRound : round !== undefined)) return false;
+  pending.resolve(j.stage === 'human-check' ? text : String(text).trim().slice(0, 16));
+  return true;
+}
+export async function refreshCaptcha(id) { const pending = jobs.own(id)?.captcha; if (!pending?.refresh) return false; await pending.refresh(); return true; }
 
 async function run(j, c, onBooks) {
   const signal = jobs.own(j.id).ctl.signal;
   j.stage = 'resolving'; j.line = '打开网盘链接…';
-  const file = await resource(c, signal);
+  const file = await resource(j, c, signal);
   j.file = file.file_name; j.size = Number(file.file_size_bytes) || 0;
   const left = Math.ceil((Number(file.wait_seconds) || 0) - Math.max(0, Date.now() / 1000 - (Number(file.start_time) || 0)));
   if (left > 0 && left < 600) await countdown(j, left, signal);

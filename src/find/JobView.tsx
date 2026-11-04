@@ -12,6 +12,7 @@ export function jobText(j: Job, short = false): string {
     case 'queued': return short ? '排队中' : '排队中 · 网盘一次只能下一本';
     case 'resolving': return '连接网盘…';
     case 'waiting': return `网盘要求等 ${j.wait ?? ''} 秒`;
+    case 'human-check': return '需要网盘验证';
     case 'captcha': return '需要你输入验证码';
     case 'unpacking': return '解压、上架…';
     case 'downloading': {
@@ -42,6 +43,30 @@ export function Captcha({ job, autoFocus = true }: { job: Job; autoFocus?: boole
   );
 }
 
+function ShareCheck({ job }: { job: Job }) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [attempt, setAttempt] = useState(0);
+  const origin = 'https://h5.ctfile.com';
+  useEffect(() => {
+    function receive(e: MessageEvent) {
+      if (e.origin !== origin || !frame.current || e.source !== frame.current.contentWindow) return;
+      const m = e.data;
+      const expected = job.checkType === 'altcha' ? m?.source === 'ctfile-captcha' && m.type === 'altcha' : m?.source === 'ctfile-turnstile';
+      if (expected && m.event === 'success' && typeof m.token === 'string' && m.token) {
+        void useStore.getState().answerCaptcha(job.id, m.token, job.checkRound);
+      }
+    }
+    window.addEventListener('message', receive);
+    return () => window.removeEventListener('message', receive);
+  }, [job.id, job.checkType, job.checkRound]);
+  return <div onClick={(e) => e.stopPropagation()}>
+    {attempt > 0 && <iframe key={attempt} ref={frame} title="城通网盘人机验证" sandbox="allow-scripts allow-same-origin" referrerPolicy="no-referrer"
+      style={{ display: 'block', border: 0, width: '100%', height: 72 }}
+      src={origin + '/captcha/' + job.checkType + '.html?action=share_passcode&lang=zh-hans&theme=light&source=urlweb'} />}
+    <button type="button" className="btn sm" onClick={() => setAttempt(attempt + 1)}>{attempt ? '重新加载验证' : '开始网盘验证'}</button>
+  </div>;
+}
+
 /** One running download: the bar, what it is doing, and a way to stop it. */
 export function JobLine({ job, title, compact = false }: { job: Job; title?: string; compact?: boolean }) {
   const S = useStore.getState;
@@ -54,6 +79,7 @@ export function JobLine({ job, title, compact = false }: { job: Job; title?: str
         <span className="mono jl-s">{jobText(job, compact)}</span>
         {job.src === 'treasure' && <button type="button" className="icon-btn jl-x tip up" data-tip="停止取回" onClick={(e) => { e.stopPropagation(); S().cancelJob(job.id); }} aria-label="停止取回"><Icon name="x" size={13} /></button>}
       </div>
+      {job.stage === 'human-check' && <ShareCheck key={job.checkRound} job={job} />}
       {job.stage === 'captcha' && <Captcha job={job} autoFocus={!compact} />}
     </div>
   );
