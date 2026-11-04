@@ -55,6 +55,7 @@ const timeout = setTimeout(() => { console.error('Desktop test timed out'); app.
   const epub = books.find((book) => book.file.ext === 'epub');
   await win.loadURL(`rl://app/#/read/${epub.id}`);
   await until(() => win.webContents.executeJavaScript("!!document.querySelector('.rd-stage.is-in .sheet')"), 'EPUB did not render through the desktop protocol');
+  const hadPaperTurn = await win.webContents.executeJavaScript("!!document.querySelector('#glturn')");
   if (process.argv.includes('create')) {
     await win.webContents.executeJavaScript(`document.querySelector('[data-tip="排版"]').click()`);
     await win.webContents.executeJavaScript(`[...document.querySelectorAll('[role=radio]')].find(b => b.textContent === 'MiSans').click()`);
@@ -62,6 +63,7 @@ const timeout = setTimeout(() => { console.error('Desktop test timed out'); app.
     await win.webContents.executeJavaScript(`const slider = document.querySelector('[aria-label="MiSans 字重"]'); slider.value = '471'; slider.dispatchEvent(new Event('change', { bubbles: true }));`);
   }
   await until(() => win.webContents.executeJavaScript(`[...document.querySelectorAll('.leaf .pg-flow p')].some(p => getComputedStyle(p).fontWeight === '471' && getComputedStyle(p).fontFamily.includes('MiSans'))`), 'MiSans weight missing after selection or restart');
+  if (hadPaperTurn) await until(() => win.webContents.executeJavaScript("document.querySelector('#glturn')?.style.display === 'block'"), 'MiSans did not paint the 3D page');
   console.log('Desktop passed: PATH, menu, protocol, import, Chinese notes, PDF, EPUB, ' + (process.argv.includes('create') ? 'creation' : 'restart persistence'));
   clearTimeout(timeout); app.quit();
 })().catch((error) => { console.error(error); clearTimeout(timeout); app.exit(1); });
