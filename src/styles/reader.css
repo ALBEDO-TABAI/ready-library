@@ -79,6 +79,9 @@
 .rd-toc button.d1 { padding-left: 26px; } .rd-toc button.d1 .tt { font-size: 13px; }
 .rd-toc button .pn { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
 .rd-empty { padding: 30px 16px; color: var(--ink-3); font-size: 13px; line-height: 1.6; text-align: center; }
+@font-face { font-family: 'MiSans'; src: url('/fonts/MiSansVF.ttf') format('truetype'); font-weight: 150 700; font-display: swap; }
+.rd-weight input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.rd-weight output { min-width: 3ch; font-variant-numeric: tabular-nums; }
 .rd-set { padding: 4px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
 .rd-set .row { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
 .rd-set .row > span { font-size: var(--fs-sm); color: var(--ink-2); font-weight: 500; }

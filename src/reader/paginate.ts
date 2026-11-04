@@ -11,21 +11,22 @@ export const PAGE_W = 594, PAGE_H = 846, BODY_H = 682;
 export type PageKind = 'cover' | 'plate' | 'title' | 'toc' | 'text' | 'end' | 'blank' | 'back';
 export type Page = { kind: PageKind; chapter: number; start: number; html: string; opens?: boolean; tocFrom?: number };
 export type Layout = { pages: Page[]; chapterPage: number[]; idPage: Map<string, number>; firstText: number; tocRows: number };
-export type Typo = { size: number; lead: number; font: 'song' | 'hei' | 'kai'; paper: 'white' | 'cream' | 'night' };
+export type Typo = { size: number; lead: number; weight?: number; font: 'song' | 'hei' | 'kai' | 'misans'; paper: 'white' | 'cream' | 'night' };
 
-const CJK: Record<Typo['font'], string> = {
+const CJK: Record<Exclude<Typo['font'], 'misans'>, string> = {
   song: "'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun'",
   hei: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans CJK SC', 'Microsoft YaHei'",
   kai: "'Kaiti SC', 'STKaiti', 'KaiTi', 'Noto Serif CJK SC'",
 };
-const LATIN: Record<Typo['font'], string> = {
+const LATIN: Record<Exclude<Typo['font'], 'misans'>, string> = {
   song: "'Iowan Old Style', 'Charter', 'Palatino', Georgia",
   hei: "-apple-system, 'Helvetica Neue', 'Segoe UI', Arial",
   kai: "'Iowan Old Style', 'Palatino', Georgia",
 };
-/** System faces only (a page raster can't load web fonts). A Chinese book keeps its CJK face first, so quotes and
+/** A Chinese book keeps its CJK face first, so quotes and
  *  punctuation stay full-width; a Latin book puts a Latin face first and lets CJK fall through. */
-export const fontStack = (f: Typo['font'], latin: boolean) => `${latin ? `${LATIN[f]}, ${CJK[f]}` : `${CJK[f]}, ${LATIN[f]}`}, ${f === 'hei' ? 'sans-serif' : 'serif'}`;
+export const fontStack = (f: Typo['font'], latin: boolean) => f === 'misans' ? "'MiSans', sans-serif" : `${latin ? `${LATIN[f]}, ${CJK[f]}` : `${CJK[f]}, ${LATIN[f]}`}, ${f === 'hei' ? 'sans-serif' : 'serif'}`;
+export const pageTypeStyle = (t: Typo, latin: boolean) => `--fs:${t.size}px;--lh:${t.lead};--pf:${fontStack(t.font, latin)};--fw:${t.font === 'misans' ? t.weight ?? 330 : 400}`;
 export const PAPERS: Record<Typo['paper'], { pp: string; pp2: string; pi: string }> = {
   white: { pp: '#fbfaf7', pp2: '#f0eee9', pi: '#18181a' },
   cream: { pp: '#f5efe2', pp2: '#ebe2cf', pi: '#2b241b' },
@@ -156,9 +157,11 @@ function cut(el: HTMLElement, at: number): [HTMLElement, HTMLElement] {
 }
 
 export async function paginate(book: LoadedBook, typo: Typo, opts: { latin: boolean; tocRows: number; onProgress?: (p: number) => void; signal?: AbortSignal }): Promise<Layout> {
+  if (typo.font === 'misans') await document.fonts.load(`${typo.weight ?? 330} ${typo.size}px MiSans`);
+  opts.signal?.throwIfAborted();
   const host = document.createElement('div');
   host.className = `sheet measure ${opts.latin ? 'latin' : ''}`;
-  host.style.cssText = `position:fixed;left:-20000px;top:0;visibility:hidden;contain:layout style;--fs:${typo.size}px;--lh:${typo.lead};--pf:${fontStack(typo.font, opts.latin)}`;
+  host.style.cssText = `position:fixed;left:-20000px;top:0;visibility:hidden;contain:layout style;${pageTypeStyle(typo, opts.latin)}`;
   host.innerHTML = '<div class="pg-body"><div class="pg-flow"></div></div>';
   document.body.appendChild(host);
   const flow = host.querySelector('.pg-flow') as HTMLElement;

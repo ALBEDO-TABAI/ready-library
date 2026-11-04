@@ -349,7 +349,8 @@ export function createFlipbook(o) {
   }
 
   /* ---------- boot ---------- */
-  GLT.init(book, () => S);
+  // The DOM turn keeps bundled CJK fonts available without embedding a full font in every page texture.
+  if (!o.domTurn) GLT.init(book, () => S);
   GLT.setLook(o.look);
   book.style.setProperty('--grain', `url(${GLT.grain().toDataURL()})`);
   stage.addEventListener('pointerdown', down);

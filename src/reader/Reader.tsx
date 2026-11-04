@@ -7,7 +7,7 @@ import { Icon } from '../ui/Icon';
 import { LSeg } from '../ui/controls';
 import G from '../ui/glass/glass';
 import { loadBook, type LoadedBook, type TocItem } from './book';
-import { fontStack, PAPERS, paginate, type Layout, type Page, type Typo } from './paginate';
+import { fontStack, pageTypeStyle, PAPERS, paginate, type Layout, type Page, type Typo } from './paginate';
 import { createFlipbook } from './flipbook.js';
 import { anchorOf, chapterText, pagesOf, paintMarks, sliceNonWs } from './marks';
 import { Lens, MarginNotes, NotesList, type Box, type LensState, type MarginItem } from './Notes';
@@ -57,6 +57,22 @@ function bookFile(rec: BookRec, ext: string) {
     p.finally(() => setTimeout(() => loading.delete(k), 1000));
   }
   return p;
+}
+
+// Preview the weight while dragging. Repaginate once the native slider commits the change.
+function MiSansWeight({ value, onChange }: { value: number; onChange: (weight: number) => void }) {
+  const slider = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState(value);
+  useEffect(() => {
+    const el = slider.current!;
+    const commit = () => onChange(el.valueAsNumber);
+    el.addEventListener('change', commit);
+    return () => el.removeEventListener('change', commit);
+  }, [onChange]);
+  return <label className="row rd-weight"><span style={{ fontFamily: 'MiSans', fontWeight: preview }}>字重</span>
+    <input ref={slider} type="range" aria-label="MiSans 字重" min={150} max={700} step={1} defaultValue={value} onInput={(e) => setPreview(e.currentTarget.valueAsNumber)} />
+    <output>{preview}</output>
+  </label>;
 }
 
 export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) {
@@ -151,7 +167,7 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
     return () => ctl.abort();
     // typography only; paper colour does not change the layout
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [book, typo.size, typo.lead, typo.font, latin, tocItems.length]);
+  }, [book, typo.size, typo.lead, typo.font, typo.weight, latin, tocItems.length]);
 
   /** The contents entry a page falls under, found by page number: one file can hold dozens of chapters. */
   const titleAt = useMemo(() => {
@@ -240,9 +256,9 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
     pageStyles().then((css) => {
       if (!live) return;
       // a book not started opens where its text does (a chapter opening on a right-hand page)
-      const start = entry.current ? 1 : posRef.current ? pageOf(posRef.current) : layout.firstText + 1;
+      const start = entry.current && !opened.current ? 1 : posRef.current ? pageOf(posRef.current) : layout.firstText + 1;
       flip = createFlipbook({
-        stage: stageRef.current!, book: bookRef.current!, count: layout.pages.length, single,
+        stage: stageRef.current!, book: bookRef.current!, count: layout.pages.length, single, domTurn: typo.font === 'misans',
         page: sheetOf,
         blank: () => { const d = document.createElement('div'); d.className = 'sheet'; d.style.cssText = `--pp:${paper.pp};--pi:${paper.pi}`; return d; },
         look: { css, root: `font-family:${fontStack(typo.font, latin)}`, paper: rgb(paper.pp) },
@@ -537,8 +553,9 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
               <LSeg value={String(typo.lead)} onChange={(v) => setTypo((t) => ({ ...t, lead: +v }))} className="boxed sm" options={[{ v: '1.6', l: '紧凑' }, { v: '1.8', l: '适中' }, { v: '2.05', l: '宽松' }]} />
             </div>
             <div className="row"><span>字体</span>
-              <LSeg value={typo.font} onChange={(v) => setTypo((t) => ({ ...t, font: v }))} className="boxed sm" options={[{ v: 'song', l: '宋体' }, { v: 'hei', l: '黑体' }, { v: 'kai', l: '楷体' }]} />
+              <LSeg value={typo.font} onChange={(v) => setTypo((t) => ({ ...t, font: v }))} className="boxed sm" options={[{ v: 'song', l: '宋体' }, { v: 'hei', l: '黑体' }, { v: 'kai', l: '楷体' }, { v: 'misans', l: 'MiSans' }]} />
             </div>
+            {typo.font === 'misans' && <MiSansWeight value={typo.weight ?? 330} onChange={(weight) => setTypo((t) => ({ ...t, weight }))} />}
             <div className="row"><span>纸张</span>
               <span className="paper-sw">
                 {(Object.keys(PAPERS) as Typo['paper'][]).map((k) => (
@@ -552,7 +569,7 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
               <LSeg value={single ? 'single' : 'auto'} onChange={(v) => setSingle(v === 'single')} className="boxed sm" options={[{ v: 'auto', l: '双页' }, { v: 'single', l: '单页' }]} />
             </div>
             <p className="caption" style={{ whiteSpace: 'normal' }}>
-              {flipRef.current?.gl ? <><i className="ledg" />WebGL 纸张翻页</> : <><i className="ledg warn" />CSS 翻页（没有 WebGL2）</>}
+              {flipRef.current?.gl ? <><i className="ledg" />WebGL 纸张翻页</> : <><i className="ledg warn" />CSS 纸张翻页</>}
               <i className="dot" /><span>拖动页角、点左右两半或用 ← → 翻页；在正文上拖选文字可以划线</span>
             </p>
           </div>
@@ -572,7 +589,7 @@ function renderSheet(i: number, L: Layout, book: LoadedBook, rec: BookRec, typo:
   const recto = i % 2 === 0;
   d.className = `sheet ${recto ? 'recto' : 'verso'} ${latin ? 'latin' : ''}`;
   d.dataset.pi = String(i);
-  d.style.cssText = `--fs:${typo.size}px;--lh:${typo.lead};--pf:${fontStack(typo.font, latin)};--pp:${paper.pp};--pp2:${paper.pp2};--pi:${paper.pi};--cc:${cloth};--cf:${clothFg};--mka:${typo.paper === 'night' ? '34%' : '46%'}`;
+  d.style.cssText = `${pageTypeStyle(typo, latin)};--pp:${paper.pp};--pp2:${paper.pp2};--pi:${paper.pi};--cc:${cloth};--cf:${clothFg};--mka:${typo.paper === 'night' ? '34%' : '46%'}`;
   const no = String((hash(rec.id) % 900) + 100);
   const cover = coverUrl(rec);
   const folio = (n: number) => `<div class="pg-foot"><span>${String(n).padStart(3, '0')}</span><span class="dotx"></span></div>`;
