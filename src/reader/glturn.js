@@ -4,7 +4,7 @@
 // the paper colour and the page stylesheet are set from outside (setLook), blob: images are inlined
 // into page rasters, pages can be invalidated, and the WebGL context is released on dispose.
 /* eslint-disable */
-export function createGLT(P) {
+export function createGLT(P, pageFont) {
   /* A true 3D book in hand-written WebGL2 (no libraries).
      Every rendered sheet is a 64×88 grid deformed on the GPU: a resting spine hump + low-frequency wrinkle shared by
      each stack, and a turning model in which the sheet rotates about the spine while the part beyond a fold line
@@ -261,9 +261,10 @@ export function createGLT(P) {
   async function raster(sheet, W, H){
     const c = sheet.cloneNode(true); c.style.transform = "none"; c.style.left = "0px"; c.style.top = "0px"; c.style.visibility = "visible";
     for (const im of c.querySelectorAll("img")){ const s = im.getAttribute("src") || ""; if (s.startsWith("blob:") || s.startsWith("/")) im.setAttribute("src", await dataURL(s)); im.removeAttribute("loading"); }
+    const fontCss = pageFont && c.textContent.trim() ? await pageFont(c.textContent) : '';
     const html = new XMLSerializer().serializeToString(c), z = W / 594;
     const root = `${rootStyle};-webkit-font-smoothing:antialiased;width:594px;height:846px;position:relative;margin:0;zoom:${z}`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject x="0" y="0" width="${W}" height="${H}"><div xmlns="http://www.w3.org/1999/xhtml" class="fo-root" style="${root.replace(/"/g, "'")}"><style><![CDATA[${pageCSS.replace(/]]>/g, "")}]]></style>${html}</div></foreignObject></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject x="0" y="0" width="${W}" height="${H}"><div xmlns="http://www.w3.org/1999/xhtml" class="fo-root" style="${root.replace(/"/g, "'")}"><style><![CDATA[${fontCss}${pageCSS.replace(/]]>/g, "")}]]></style>${html}</div></foreignObject></svg>`;
     const img = new Image(); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
     await img.decode();
     let tw = W, th = H;

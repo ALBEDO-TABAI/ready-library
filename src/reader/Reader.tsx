@@ -13,6 +13,7 @@ import { anchorOf, chapterText, pagesOf, paintMarks, sliceNonWs } from './marks'
 import { Lens, MarginNotes, NotesList, type Box, type LensState, type MarginItem } from './Notes';
 import { PAGED, readAhead, take } from './preload';
 import pageCss from './page.css?raw';
+import { base64, miSansPageFace } from './rasterFonts';
 
 type Flip = ReturnType<typeof createFlipbook>;
 type View = { a: number; b: number; count: number; spread: boolean; atStart: boolean; atEnd: boolean };
@@ -36,9 +37,7 @@ function pageStyles() {
     const s = document.createElement('style'); s.id = 'rl-page-css'; s.textContent = pageCss; document.head.appendChild(s);
   }
   rasterCss ??= fetch('/ui-fonts/GeistMono.woff2').then((r) => r.arrayBuffer()).then((b) => {
-    let bin = ''; const u = new Uint8Array(b);
-    for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode(...u.subarray(i, i + 0x8000));
-    return `@font-face{font-family:'RL Mono';src:url(data:font/woff2;base64,${btoa(bin)}) format('woff2');font-weight:100 900}\n${pageCss}`;
+    return `@font-face{font-family:'RL Mono';src:url(data:font/woff2;base64,${base64(new Uint8Array(b))}) format('woff2');font-weight:100 900}\n${pageCss}`;
   }).catch(() => pageCss);
   return rasterCss;
 }
@@ -258,7 +257,8 @@ export default function Reader({ id, onUp }: { id: string; onUp?: () => void }) 
       // a book not started opens where its text does (a chapter opening on a right-hand page)
       const start = entry.current && !opened.current ? 1 : posRef.current ? pageOf(posRef.current) : layout.firstText + 1;
       flip = createFlipbook({
-        stage: stageRef.current!, book: bookRef.current!, count: layout.pages.length, single, domTurn: typo.font === 'misans',
+        stage: stageRef.current!, book: bookRef.current!, count: layout.pages.length, single,
+        pageFont: typo.font === 'misans' ? miSansPageFace : undefined,
         page: sheetOf,
         blank: () => { const d = document.createElement('div'); d.className = 'sheet'; d.style.cssText = `--pp:${paper.pp};--pi:${paper.pi}`; return d; },
         look: { css, root: `font-family:${fontStack(typo.font, latin)}`, paper: rgb(paper.pp) },

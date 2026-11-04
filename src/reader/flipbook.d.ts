@@ -1,7 +1,7 @@
 export type FlipView = { a: number; b: number; count: number; spread: boolean; cur: number; atStart: boolean; atEnd: boolean };
 export function createFlipbook(o: {
   stage: HTMLElement; book: HTMLElement; count: number; page: (i: number) => HTMLElement; blank: () => HTMLElement;
-  look: { css: string; root: string; paper: number[] }; onChange?: (v: FlipView) => void; startPage?: number; single?: boolean; domTurn?: boolean; params?: Record<string, number>;
+  look: { css: string; root: string; paper: number[] }; onChange?: (v: FlipView) => void; startPage?: number; single?: boolean; pageFont?: (text: string) => Promise<string>; params?: Record<string, number>;
   /** text can be selected in the text column (mouse) */
   selectable?: boolean;
   onSelect?: (sel: Selection, e: PointerEvent) => void;

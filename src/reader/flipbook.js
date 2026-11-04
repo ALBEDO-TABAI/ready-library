@@ -17,7 +17,7 @@ const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
  */
 export function createFlipbook(o) {
   const { stage, book } = o;
-  const GLT = createGLT({ ...GL_PARAMS, ...(o.params || {}) });
+  const GLT = createGLT({ ...GL_PARAMS, ...(o.params || {}) }, o.pageFont);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const S = { spread: true, pw: PW, k: 1, cur: 0, leaves: [], busy: false, queue: 0, count: o.count, forceSingle: !!o.single };
   let disposed = false;
@@ -349,8 +349,7 @@ export function createFlipbook(o) {
   }
 
   /* ---------- boot ---------- */
-  // The DOM turn keeps bundled CJK fonts available without embedding a full font in every page texture.
-  if (!o.domTurn) GLT.init(book, () => S);
+  GLT.init(book, () => S);
   GLT.setLook(o.look);
   book.style.setProperty('--grain', `url(${GLT.grain().toDataURL()})`);
   stage.addEventListener('pointerdown', down);
