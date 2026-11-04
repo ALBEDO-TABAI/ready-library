@@ -48,7 +48,7 @@ type State = {
   /** A treasure-chest book: onto the shelf, then fetched, unpacked and attached in the background. */
   fetchTreasure: (arg: { id: string } | { hit: TreasureHit }) => Promise<void>;
   track: (job: Job) => void;
-  answerCaptcha: (id: string, answer: string) => Promise<void>;
+  answerCaptcha: (id: string, answer: string, round?: number) => Promise<void>;
   newCaptcha: (id: string) => Promise<void>;
   cancelJob: (id: string) => Promise<void>;
 };
@@ -188,9 +188,9 @@ export const useStore = create<State>((set, get) => ({
     };
     setTimeout(poll, 500);
   },
-  answerCaptcha: async (id, answer) => {
+  answerCaptcha: async (id, answer, round) => {
     try {
-      await api.answer(id, answer);
+      await api.answer(id, answer, round);
       set((s) => (s.jobs[id] ? { jobs: { ...s.jobs, [id]: { ...s.jobs[id], captcha: undefined, stage: 'resolving', line: '核对验证码…' } } } : {}));
     } catch (e) { get().toast({ text: (e as Error).message, kind: 'bad' }); }
   },

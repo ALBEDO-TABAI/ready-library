@@ -279,8 +279,8 @@ export async function handle(req, res) {
       if (!sub && M === 'GET') return send(res, 200, { job: j });
       if (sub === '/answer' && M === 'POST') {
         const r = await json(req);
-        if (!String(r.answer ?? '').trim()) return fail(res, 400, '请输入验证码');
-        return ctfile.answer(id, r.answer) ? send(res, 200, { job: j }) : fail(res, 409, '这个任务现在不需要验证码');
+        if (typeof r.answer !== 'string' || !r.answer.trim()) return fail(res, 400, '请输入验证码');
+        return ctfile.answer(id, r.answer, r.round) ? send(res, 200, { job: j }) : fail(res, 409, '这个任务现在不需要验证码');
       }
       if (sub === '/captcha' && M === 'POST') {
         try { return (await ctfile.refreshCaptcha(id)) ? send(res, 200, { job: j }) : fail(res, 409, '这个任务现在不需要验证码'); }

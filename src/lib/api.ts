@@ -41,14 +41,14 @@ export type ZlibHit = {
 };
 export type ZlibStatus = { installed: boolean; loggedIn: boolean; platform?: string; version?: string; quota?: { remaining: number; allowed: number; reset: string } | null; error: string };
 export type TreasureStatus = { ready: boolean; loading: boolean; cached: boolean; count: number; updatedAt: number; error: string };
-export type JobStage = '' | 'queued' | 'resolving' | 'waiting' | 'captcha' | 'downloading' | 'unpacking' | 'done';
+export type JobStage = '' | 'queued' | 'resolving' | 'waiting' | 'human-check' | 'captcha' | 'downloading' | 'unpacking' | 'done';
 /** A download running on the server: zlib's CLI, or a treasure-chest book fetched from CTFile. */
 export type Job = {
   id: string; src: 'zlib' | 'treasure'; ref?: string; link?: string; title: string; attach?: string;
   state: 'running' | 'done' | 'error'; stage: JobStage; pct: number; line: string; error: string;
   /** the book on the shelf when it is done; `more` counts the other volumes of a set */
   book?: BookRec & { more?: number };
-  captcha?: string; wait?: number; bytes?: number; total?: number; speed?: number; file?: string;
+  checkType?: 'altcha' | 'turnstile'; checkRound?: number; captcha?: string; wait?: number; bytes?: number; total?: number; speed?: number; file?: string;
 };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -78,7 +78,7 @@ export const api = {
   job: (id: string) => call<{ job: Job }>(`/jobs/${id}`),
   jobs: () => call<{ jobs: Job[] }>('/jobs'),
   treasureFetch: (arg: { id: string } | { hit: TreasureHit & { topic?: TopicKey } }) => call<{ job: Job; book: BookRec }>('/treasure/fetch', body('POST', arg)),
-  answer: (id: string, answer: string) => call<{ job: Job }>(`/jobs/${id}/answer`, body('POST', { answer })),
+  answer: (id: string, answer: string, round?: number) => call<{ job: Job }>(`/jobs/${id}/answer`, body('POST', { answer, round })),
   newCaptcha: (id: string) => call<{ job: Job }>(`/jobs/${id}/captcha`, { method: 'POST' }),
   cancelJob: (id: string) => call<{ ok: boolean }>(`/jobs/${id}/cancel`, { method: 'POST' }),
 };

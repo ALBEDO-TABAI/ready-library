@@ -16,6 +16,7 @@ const archives = {
   zip: Buffer.from(zipSync({ '目录/中文 & 空格?问号.epub': bookBytes, '目录/中文.mobi': Buffer.from('unused') })),
   '7z': readFileSync(new URL('./fixtures/books.7z', import.meta.url)),
 };
+const token = 'single-use-verification-token', pass = 'v1.download-permission';
 const waitUntil = async (fn) => {
   for (let i = 0; i < 200; i++) { if (fn()) return; await new Promise((r) => setTimeout(r, 25)); }
   throw new Error('Timed out waiting for download');
@@ -32,10 +33,22 @@ before(async () => {
     res.setHeader('content-type', 'application/json');
     if (u.pathname === '/resource') {
       const ext = u.searchParams.get('id');
+      if (ext === 'protected') {
+        const type = u.searchParams.get('passcode') === 'wrong' ? 'turnstile' : 'altcha';
+        const proof = u.searchParams.get(type + '_token');
+        if (proof !== token || type === 'turnstile') {
+          const error_type = proof === token ? 'passcode_incorrect' : proof ? 'captcha_expired' : 'captcha_required';
+          res.writeHead(423);
+          return res.end(JSON.stringify({ code: 423, data: { captcha_type: type, error_type } }));
+        }
+        return res.end(JSON.stringify({ code: 200, data: { file: { file_name: 'book.zip', file_size_bytes: archives.zip.length }, access_pass: pass } }));
+      }
       return res.end(JSON.stringify({ code: 200, data: { file: { file_name: `中文.${ext}`, file_size_bytes: archives[ext]?.length || 1, wait_seconds: ext === 'wait' ? 5 : 0, start_time: Date.now() / 1000 } } }));
     }
     let body = ''; for await (const c of req) body += c;
-    const ext = JSON.parse(body).context.id;
+    const ctx = JSON.parse(body).context;
+    if (ctx.id === 'protected' && ctx.access_pass !== pass) return res.end(JSON.stringify({ code: 423 }));
+    const ext = ctx.id === 'protected' ? 'zip' : ctx.id;
     res.end(JSON.stringify({ code: 200, data: { downurl: `${base}/archive/${ext}`, file_size: archives[ext].length } }));
   }).listen(0, '127.0.0.1');
   await once(server, 'listening'); base = `http://127.0.0.1:${server.address().port}`;
@@ -100,4 +113,28 @@ test('zlib downloads to a path with spaces and cancellation stops the child', as
   assert.equal(slow.error, '已取消');
   assert.throws(() => process.kill(pid, 0));
   await waitUntil(() => !existsSync(dir));
+});
+
+for (const password of ['8866', 'wrong']) test(`human check before opening a share with password ${password}`, async () => {
+  let imported;
+  const j = ct.fetchBook('https://test.ctfile.com/f/protected?p=' + password, {}, ([f]) => {
+    imported = readFileSync(f.path);
+    return { title: 'protected' };
+  });
+  await waitUntil(() => j.stage === 'human-check' || j.state !== 'running');
+  assert.equal(j.stage, 'human-check', j.error);
+  assert.equal(j.checkType, password === 'wrong' ? 'turnstile' : 'altcha');
+  const firstRound = j.checkRound;
+  ct.answer(j.id, 'expired-proof', firstRound);
+  await waitUntil(() => j.checkRound !== firstRound && j.stage === 'human-check');
+  assert.equal(ct.answer(j.id, token, firstRound), false);
+  assert.equal(ct.answer(j.id, token, j.checkRound), true);
+  await waitUntil(() => j.state !== 'running');
+  if (password === 'wrong') {
+    assert.match(j.error, /提取码不对/);
+    assert.equal(imported, undefined);
+  } else {
+    assert.equal(j.state, 'done', j.error);
+    assert.deepEqual(imported, bookBytes);
+  }
 });
